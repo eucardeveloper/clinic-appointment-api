@@ -5,10 +5,10 @@ import com.enesucar.klinik_api.dto.TerminResponse;
 import com.enesucar.klinik_api.entity.Termin;
 import com.enesucar.klinik_api.exception.TerminNotFoundException;
 import com.enesucar.klinik_api.repository.TerminRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class TerminService {
@@ -19,11 +19,10 @@ public class TerminService {
         this.terminRepository = terminRepository;
     }
 
-    public List<TerminResponse> alleTermine() {
-        return terminRepository.findAll()
-                .stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
+    public Page<TerminResponse> alleTermine(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return terminRepository.findAll(pageable)
+                .map(this::toResponse);
     }
 
     public TerminResponse terminSpeichern(TerminRequest request) {
@@ -36,14 +35,13 @@ public class TerminService {
         return toResponse(gespeichert);
     }
 
-    public TerminResponse terminFinden(Long id) {  //Endpoint get
+    public TerminResponse terminFinden(Long id) {
         Termin termin = terminRepository.findById(id)
                 .orElseThrow(() -> new TerminNotFoundException(id));
         return toResponse(termin);
     }
 
-
-    public TerminResponse terminAktualisieren(Long id, TerminRequest request) { //Endpoint update
+    public TerminResponse terminAktualisieren(Long id, TerminRequest request) {
         Termin termin = terminRepository.findById(id)
                 .orElseThrow(() -> new TerminNotFoundException(id));
         termin.setPatientName(request.getPatientName());
