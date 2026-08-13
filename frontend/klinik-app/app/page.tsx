@@ -7,6 +7,7 @@ import {
   Avatar, ThemeProvider, createTheme, CssBaseline, Alert, Snackbar,
   CircularProgress, Tooltip, Divider, Stack, Fab, InputAdornment,
 } from '@mui/material';
+import MenuItem from '@mui/material/MenuItem';
 import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
 import Card from '@mui/material/Card';
@@ -58,6 +59,16 @@ const theme = createTheme({
       },
     },
     MuiChip: { styleOverrides: { root: { fontWeight: 600 } } },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 8,
+            '&:hover fieldset': { borderColor: '#0284c7' },
+          },
+        },
+      },
+    },
   },
 });
 
@@ -69,7 +80,10 @@ interface Termin {
   abteilung: string;
 }
 
-const ABTEILUNGEN = ['Kardiologie','Neurologie','Orthopädie','Dermatologie','Pädiatrie','Gynäkologie','Onkologie','Psychiatrie'];
+const ABTEILUNGEN = [
+  'Kardiologie', 'Neurologie', 'Orthopädie', 'Dermatologie',
+  'Pädiatrie', 'Gynäkologie', 'Onkologie', 'Psychiatrie',
+];
 
 const DEPT_CONFIG: Record<string, { color: string; bg: string }> = {
   Kardiologie:  { color: '#dc2626', bg: '#fef2f2' },
@@ -111,6 +125,20 @@ export default function Home() {
 
   useEffect(() => { fetchTermine(); }, [fetchTermine]);
 
+  const openAddDialog = () => {
+    setIsEditing(false);
+    setEditId(null);
+    setForm({ patientName: '', arztName: '', terminZeit: '', abteilung: '' });
+    setDialogOpen(true);
+  };
+
+  const openEditDialog = (t: Termin) => {
+    setIsEditing(true);
+    setEditId(t.id);
+    setForm({ patientName: t.patientName, arztName: t.arztName, terminZeit: t.terminZeit.slice(0, 16), abteilung: t.abteilung });
+    setDialogOpen(true);
+  };
+
   const handleSave = async () => {
     if (!form.patientName || !form.arztName || !form.terminZeit || !form.abteilung) {
       showSnackbar('Tüm alanları doldurun', 'error'); return;
@@ -120,9 +148,8 @@ export default function Home() {
         isEditing ? `${BASE_URL}/api/termine/${editId}` : `${BASE_URL}/api/termine`,
         { method: isEditing ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) }
       );
-      showSnackbar(isEditing ? 'Randevu güncellendi' : 'Randevu eklendi', 'success');
+      showSnackbar(isEditing ? 'Randevu güncellendi ✓' : 'Randevu eklendi ✓', 'success');
       setDialogOpen(false);
-      setForm({ patientName: '', arztName: '', terminZeit: '', abteilung: '' });
       fetchTermine();
     } catch { showSnackbar('İşlem başarısız', 'error'); }
   };
@@ -141,13 +168,15 @@ export default function Home() {
   const deptCount = [...new Set(termine.map(t => t.abteilung))].length;
   const upcoming = termine.filter(t => new Date(t.terminZeit) > new Date()).length;
 
-  const filtered = termine.filter(t => {
-    const matchSearch = t.patientName.toLowerCase().includes(search.toLowerCase()) ||
-      t.arztName.toLowerCase().includes(search.toLowerCase()) ||
-      t.abteilung.toLowerCase().includes(search.toLowerCase());
-    const matchDept = !filterDept || t.abteilung === filterDept;
-    return matchSearch && matchDept;
-  });
+  const filtered = termine
+    .filter(t => {
+      const matchSearch = t.patientName.toLowerCase().includes(search.toLowerCase()) ||
+        t.arztName.toLowerCase().includes(search.toLowerCase()) ||
+        t.abteilung.toLowerCase().includes(search.toLowerCase());
+      const matchDept = !filterDept || t.abteilung === filterDept;
+      return matchSearch && matchDept;
+    })
+    .sort((a, b) => new Date(a.terminZeit).getTime() - new Date(b.terminZeit).getTime());
 
   const formatDate = (dt: string) => new Date(dt).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' });
   const formatTime = (dt: string) => new Date(dt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -158,6 +187,7 @@ export default function Home() {
       <CssBaseline />
       <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
 
+        {/* AppBar */}
         <AppBar position="sticky">
           <Toolbar sx={{ gap: 2, minHeight: 64 }}>
             <Box sx={{ width: 38, height: 38, borderRadius: 2, bgcolor: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -177,8 +207,16 @@ export default function Home() {
               placeholder="Hasta, doktor veya bölüm ara..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 17, color: 'grey.400' }} /></InputAdornment> } }}
-              sx={{ width: 300, '& .MuiOutlinedInput-root': { borderRadius: 3, fontSize: '0.875rem', bgcolor: '#f8fafc', '&:hover fieldset': { borderColor: 'primary.light' } } }}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ fontSize: 17, color: 'grey.400' }} />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+              sx={{ width: 300, '& .MuiOutlinedInput-root': { borderRadius: 3, fontSize: '0.875rem', bgcolor: '#f8fafc' } }}
             />
             <Tooltip title="Yenile">
               <IconButton onClick={fetchTermine} size="small" sx={{ color: 'primary.main', border: '1px solid #e2e8f0', borderRadius: 2 }}>
@@ -189,7 +227,7 @@ export default function Home() {
               variant="contained"
               startIcon={<AddIcon />}
               disableElevation
-              onClick={() => { setIsEditing(false); setForm({ patientName: '', arztName: '', terminZeit: '', abteilung: '' }); setDialogOpen(true); }}
+              onClick={openAddDialog}
               sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2.5, px: 2.5, boxShadow: '0 2px 8px rgba(2,132,199,0.3)' }}
             >
               Yeni Randevu
@@ -199,6 +237,7 @@ export default function Home() {
 
         <Container maxWidth="xl" sx={{ py: 4 }}>
 
+          {/* Stats */}
           <Grid container spacing={2.5} sx={{ mb: 3.5 }}>
             {[
               { label: 'Toplam Randevu', value: termine.length, icon: <CalendarMonthIcon sx={{ fontSize: 22 }} />, color: '#0284c7', bg: 'linear-gradient(135deg, #eff6ff, #dbeafe)', border: '#bfdbfe' },
@@ -222,28 +261,41 @@ export default function Home() {
             ))}
           </Grid>
 
+          {/* Dept Filter Chips */}
           {activeDepts.length > 0 && (
             <Box sx={{ display: 'flex', gap: 1, mb: 3, flexWrap: 'wrap', alignItems: 'center' }}>
               <FilterListIcon sx={{ fontSize: 16, color: 'text.secondary', mr: 0.5 }} />
-              <Chip label="Tümü" size="small" onClick={() => setFilterDept('')}
-                variant={filterDept === '' ? 'filled' : 'outlined'} color={filterDept === '' ? 'primary' : 'default'}
-                sx={{ borderRadius: 2 }} />
+              <Chip
+                label="Tümü"
+                size="small"
+                onClick={() => setFilterDept('')}
+                variant={filterDept === '' ? 'filled' : 'outlined'}
+                color={filterDept === '' ? 'primary' : 'default'}
+                sx={{ borderRadius: 2 }}
+              />
               {activeDepts.map(dept => {
                 const cfg = getDeptConfig(dept);
                 const count = termine.filter(t => t.abteilung === dept).length;
                 return (
-                  <Chip key={dept} label={`${dept} (${count})`} size="small"
+                  <Chip
+                    key={dept}
+                    label={`${dept} (${count})`}
+                    size="small"
                     onClick={() => setFilterDept(filterDept === dept ? '' : dept)}
-                    sx={{ borderRadius: 2, fontWeight: 600, fontSize: '0.72rem',
+                    sx={{
+                      borderRadius: 2, fontWeight: 600, fontSize: '0.72rem',
                       bgcolor: filterDept === dept ? cfg.color : cfg.bg,
                       color: filterDept === dept ? '#fff' : cfg.color,
                       border: `1px solid ${cfg.color}30`,
-                      '&:hover': { bgcolor: cfg.color, color: '#fff' } }} />
+                      '&:hover': { bgcolor: cfg.color, color: '#fff' },
+                    }}
+                  />
                 );
               })}
             </Box>
           )}
 
+          {/* Cards */}
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 12 }}>
               <CircularProgress color="primary" />
@@ -258,8 +310,7 @@ export default function Home() {
                 {search || filterDept ? 'Arama kriterlerinize uygun randevu yok.' : 'Henüz randevu eklenmemiş.'}
               </Typography>
               {!search && !filterDept && (
-                <Button variant="contained" startIcon={<AddIcon />} disableElevation
-                  onClick={() => { setIsEditing(false); setForm({ patientName: '', arztName: '', terminZeit: '', abteilung: '' }); setDialogOpen(true); }}
+                <Button variant="contained" startIcon={<AddIcon />} disableElevation onClick={openAddDialog}
                   sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2.5 }}>
                   İlk Randevuyu Ekle
                 </Button>
@@ -267,7 +318,7 @@ export default function Home() {
             </Box>
           ) : (
             <Grid container spacing={2.5}>
-              {filtered.sort((a, b) => new Date(a.terminZeit).getTime() - new Date(b.terminZeit).getTime()).map(t => {
+              {filtered.map(t => {
                 const cfg = getDeptConfig(t.abteilung);
                 const isPast = new Date(t.terminZeit) < new Date();
                 return (
@@ -311,8 +362,7 @@ export default function Home() {
                       </CardContent>
                       <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5, px: 2, pb: 1.5 }}>
                         <Tooltip title="Düzenle">
-                          <IconButton size="small" sx={{ color: 'primary.main', '&:hover': { bgcolor: '#eff6ff' } }}
-                            onClick={() => { setIsEditing(true); setEditId(t.id); setForm({ patientName: t.patientName, arztName: t.arztName, terminZeit: t.terminZeit.slice(0, 16), abteilung: t.abteilung }); setDialogOpen(true); }}>
+                          <IconButton size="small" sx={{ color: 'primary.main', '&:hover': { bgcolor: '#eff6ff' } }} onClick={() => openEditDialog(t)}>
                             <EditIcon sx={{ fontSize: 17 }} />
                           </IconButton>
                         </Tooltip>
@@ -331,52 +381,116 @@ export default function Home() {
           )}
         </Container>
 
-        <Fab color="primary" sx={{ position: 'fixed', bottom: 32, right: 32, boxShadow: '0 4px 16px rgba(2,132,199,0.35)' }}
-          onClick={() => { setIsEditing(false); setForm({ patientName: '', arztName: '', terminZeit: '', abteilung: '' }); setDialogOpen(true); }}>
+        {/* FAB */}
+        <Fab color="primary" sx={{ position: 'fixed', bottom: 32, right: 32, boxShadow: '0 4px 16px rgba(2,132,199,0.35)' }} onClick={openAddDialog}>
           <AddIcon />
         </Fab>
 
-        <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-          <DialogTitle sx={{ fontWeight: 700, color: 'primary.dark', pb: 1 }}>
-            {isEditing ? '✏️ Randevu Düzenle' : '📅 Yeni Randevu'}
+        {/* Add/Edit Dialog */}
+        <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth
+          PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}>
+          <Box sx={{ height: 4, bgcolor: 'primary.main' }} />
+          <DialogTitle sx={{ fontWeight: 700, color: 'primary.dark', pb: 1, pt: 2.5 }}>
+            {isEditing ? '✏️ Randevu Düzenle' : '📅 Yeni Randevu Ekle'}
           </DialogTitle>
           <Divider />
-          <DialogContent sx={{ pt: 2.5 }}>
-            <Stack spacing={2.5} sx={{ mt: 0.5 }}>
-              <TextField label="Hasta Adı" fullWidth size="small" value={form.patientName}
+          <DialogContent sx={{ pt: 3 }}>
+            <Stack spacing={2.5}>
+              <TextField
+                label="Hasta Adı"
+                fullWidth
+                size="small"
+                value={form.patientName}
                 onChange={e => setForm({ ...form, patientName: e.target.value })}
-                slotProps={{ input: { startAdornment: <InputAdornment position="start"><PersonIcon sx={{ fontSize: 17, color: 'grey.400' }} /></InputAdornment> } }} />
-              <TextField label="Doktor Adı" fullWidth size="small" value={form.arztName}
+                placeholder="Ad Soyad"
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <PersonIcon sx={{ fontSize: 17, color: 'grey.400' }} />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+              <TextField
+                label="Doktor Adı"
+                fullWidth
+                size="small"
+                value={form.arztName}
                 onChange={e => setForm({ ...form, arztName: e.target.value })}
-                slotProps={{ input: { startAdornment: <InputAdornment position="start"><MedicalServicesIcon sx={{ fontSize: 17, color: 'grey.400' }} /></InputAdornment> } }} />
-              <TextField label="Tarih & Saat" type="datetime-local" fullWidth size="small" value={form.terminZeit}
+                placeholder="Dr. Ad Soyad"
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <MedicalServicesIcon sx={{ fontSize: 17, color: 'grey.400' }} />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+              <TextField
+                label="Tarih & Saat"
+                type="datetime-local"
+                fullWidth
+                size="small"
+                value={form.terminZeit}
                 onChange={e => setForm({ ...form, terminZeit: e.target.value })}
-                slotProps={{ inputLabel: { shrink: true } }} />
-              <TextField label="Bölüm" select fullWidth size="small" value={form.abteilung}
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+              <TextField
+                label="Bölüm"
+                select
+                fullWidth
+                size="small"
+                value={form.abteilung}
                 onChange={e => setForm({ ...form, abteilung: e.target.value })}
-                SelectProps={{ native: true }}
-                slotProps={{ inputLabel: { shrink: true } }}>
-                <option value="">Bölüm seçin</option>
-                {ABTEILUNGEN.map(a => <option key={a} value={a}>{a}</option>)}
+              >
+                <MenuItem value="" disabled>Bölüm seçin</MenuItem>
+                {ABTEILUNGEN.map(a => {
+                  const cfg = getDeptConfig(a);
+                  return (
+                    <MenuItem key={a} value={a}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: cfg.color, flexShrink: 0 }} />
+                        {a}
+                      </Box>
+                    </MenuItem>
+                  );
+                })}
               </TextField>
             </Stack>
           </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-            <Button onClick={() => setDialogOpen(false)} sx={{ textTransform: 'none', color: 'text.secondary' }}>İptal</Button>
-            <Button variant="contained" onClick={handleSave} disableElevation sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2, px: 3 }}>
+          <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
+            <Button onClick={() => setDialogOpen(false)} sx={{ textTransform: 'none', color: 'text.secondary', borderRadius: 2 }}>
+              İptal
+            </Button>
+            <Button variant="contained" onClick={handleSave} disableElevation
+              sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2, px: 3, boxShadow: '0 2px 8px rgba(2,132,199,0.3)' }}>
               {isEditing ? 'Güncelle' : 'Randevu Ekle'}
             </Button>
           </DialogActions>
         </Dialog>
 
-        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-          <DialogTitle sx={{ fontWeight: 700 }}>Randevu Sil</DialogTitle>
+        {/* Delete Dialog */}
+        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs" fullWidth
+          PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}>
+          <Box sx={{ height: 4, bgcolor: 'error.main' }} />
+          <DialogTitle sx={{ fontWeight: 700, pt: 2.5 }}>🗑️ Randevu Sil</DialogTitle>
           <DialogContent>
-            <Typography variant="body2" color="text.secondary">Bu randevuyu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Bu randevuyu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+            </Typography>
           </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-            <Button onClick={() => setDeleteDialogOpen(false)} sx={{ textTransform: 'none', color: 'text.secondary' }}>İptal</Button>
-            <Button variant="contained" color="error" onClick={handleDelete} disableElevation sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}>Sil</Button>
+          <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
+            <Button onClick={() => setDeleteDialogOpen(false)} sx={{ textTransform: 'none', color: 'text.secondary', borderRadius: 2 }}>
+              İptal
+            </Button>
+            <Button variant="contained" color="error" onClick={handleDelete} disableElevation
+              sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}>
+              Sil
+            </Button>
           </DialogActions>
         </Dialog>
 
