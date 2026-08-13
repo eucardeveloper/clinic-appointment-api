@@ -59,16 +59,6 @@ const theme = createTheme({
       },
     },
     MuiChip: { styleOverrides: { root: { fontWeight: 600 } } },
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          '& .MuiOutlinedInput-root': {
-            borderRadius: 8,
-            '&:hover fieldset': { borderColor: '#0284c7' },
-          },
-        },
-      },
-    },
   },
 });
 
@@ -245,7 +235,7 @@ export default function Home() {
               { label: 'Yaklaşan',       value: upcoming,       icon: <AccessTimeIcon sx={{ fontSize: 22 }} />,     color: '#d97706', bg: 'linear-gradient(135deg, #fffbeb, #fef3c7)', border: '#fde68a' },
               { label: 'Aktif Bölüm',    value: deptCount,      icon: <DomainIcon sx={{ fontSize: 22 }} />,         color: '#7c3aed', bg: 'linear-gradient(135deg, #f5f3ff, #ede9fe)', border: '#ddd6fe' },
             ].map(stat => (
-              <Grid item xs={6} sm={3} key={stat.label}>
+              <Grid size={{ xs: 6, sm: 3 }} key={stat.label}>
                 <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, background: stat.bg, border: `1px solid ${stat.border}`, height: '100%' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="caption" sx={{ color: stat.color, fontWeight: 600, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -322,7 +312,7 @@ export default function Home() {
                 const cfg = getDeptConfig(t.abteilung);
                 const isPast = new Date(t.terminZeit) < new Date();
                 return (
-                  <Grid item xs={12} sm={6} md={4} lg={3} key={t.id}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={t.id}>
                     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', opacity: isPast ? 0.75 : 1 }}>
                       <Box sx={{ height: 4, bgcolor: cfg.color, borderRadius: '12px 12px 0 0' }} />
                       <CardContent sx={{ flex: 1, p: 2.5, pb: 1.5 }}>
@@ -388,7 +378,7 @@ export default function Home() {
 
         {/* Add/Edit Dialog */}
         <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth
-          PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}>
+          slotProps={{ paper: { sx: { borderRadius: 3, overflow: 'hidden' } } }}>
           <Box sx={{ height: 4, bgcolor: 'primary.main' }} />
           <DialogTitle sx={{ fontWeight: 700, color: 'primary.dark', pb: 1, pt: 2.5 }}>
             {isEditing ? '✏️ Randevu Düzenle' : '📅 Yeni Randevu Ekle'}
@@ -475,7 +465,7 @@ export default function Home() {
 
         {/* Delete Dialog */}
         <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs" fullWidth
-          PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}>
+          slotProps={{ paper: { sx: { borderRadius: 3, overflow: 'hidden' } } }}>
           <Box sx={{ height: 4, bgcolor: 'error.main' }} />
           <DialogTitle sx={{ fontWeight: 700, pt: 2.5 }}>🗑️ Randevu Sil</DialogTitle>
           <DialogContent>
