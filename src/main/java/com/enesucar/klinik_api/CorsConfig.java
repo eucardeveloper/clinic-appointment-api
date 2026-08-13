@@ -1,4 +1,4 @@
-package com.enesucar.klinik;
+package com.enesucar.klinik_api;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
