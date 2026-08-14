@@ -1,10 +1,10 @@
-package com.enesucar.klinik_api;
+package com.enesucar.clinic_api;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class KlinikApiApplicationTests {
+class ClinicApiApplicationTests {
 
 	@Test
 	void contextLoads() {

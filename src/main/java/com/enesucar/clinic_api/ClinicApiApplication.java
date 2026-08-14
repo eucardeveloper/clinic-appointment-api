@@ -1,13 +1,13 @@
-package com.enesucar.klinik_api;
+package com.enesucar.clinic_api;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class KlinikApiApplication {
+public class ClinicApiApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(KlinikApiApplication.class, args);
+		SpringApplication.run(ClinicApiApplication.class, args);
 	}
 
 }

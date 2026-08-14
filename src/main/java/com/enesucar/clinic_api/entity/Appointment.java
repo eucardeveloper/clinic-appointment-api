@@ -1,4 +1,4 @@
-package com.enesucar.klinik_api.entity;
+package com.enesucar.clinic_api.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -6,10 +6,10 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name="termin")
+@Table(name="appointment")
 @Getter
 @Setter
-public class Termin {
+public class Appointment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -17,9 +17,9 @@ public class Termin {
 
     private String patientName;
 
-    private String arztName;
+    private String doctorName;
 
-    private LocalDateTime terminZeit;
+    private LocalDateTime appointmentTime;
 
-    private String abteilung;
+    private String department;
 }

@@ -1,4 +1,4 @@
-package com.enesucar.klinik_api.exception;
+package com.enesucar.clinic_api.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,17 +12,17 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(TerminNotFoundException.class)
-    public ResponseEntity<String> handleTerminNotFound(TerminNotFoundException ex) {
+    @ExceptionHandler(AppointmentNotFoundException.class)
+    public ResponseEntity<String> handleAppointmentNotFound(AppointmentNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationErrors(MethodArgumentNotValidException ex) {
-        Map<String, String> hatalar = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(hata ->
-                hatalar.put(hata.getField(), hata.getDefaultMessage())
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(error ->
+                errors.put(error.getField(), error.getDefaultMessage())
         );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(hatalar);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }
 }
