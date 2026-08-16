@@ -213,7 +213,7 @@ export default function HomePage() {
       </Box>
 
       {/* Dialog */}
-      <Dialog open={dialogOpen} onClose={handleClose} maxWidth="sm" fullWidth PaperProps={{ sx: { background: '#0d1f3c', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3, color: '#fff' } }}>
+      <Dialog open={dialogOpen} onClose={handleClose} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { background: '#0d1f3c', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3, color: '#fff' } } }}>
         <DialogTitle sx={{ fontWeight: 700, fontSize: 18, pb: 1, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
           {editingId !== null ? '✏️ Edit Appointment' : '➕ New Appointment'}
         </DialogTitle>
