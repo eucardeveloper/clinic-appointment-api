@@ -236,7 +236,7 @@ export default function HomePage() {
             onChange={e => setForm({ ...form, department: e.target.value })}
             select fullWidth required margin="dense"
             sx={{ '& .MuiOutlinedInput-root': { color: '#fff', '& fieldset': { borderColor: 'rgba(255,255,255,0.15)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.3)' }, '&.Mui-focused fieldset': { borderColor: '#0ea5e9' } }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' }, '& .MuiInputLabel-root.Mui-focused': { color: '#0ea5e9' }, '& .MuiSelect-icon': { color: 'rgba(255,255,255,0.5)' } }}
-            slotProps={{ select: { MenuProps: { PaperProps: { sx: { background: '#0d1f3c', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' } } } } }}
+            slotProps={{ select: { MenuProps: { slotProps: { paper: { sx: { background: '#0d1f3c', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' } } } } } }}
           >
             {DEPARTMENTS.map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
           </TextField>
