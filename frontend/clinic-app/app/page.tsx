@@ -165,7 +165,7 @@ export default function HomePage() {
 
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5" fontWeight={600}>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>
             Appointments
           </Typography>
           <Button
@@ -265,7 +265,7 @@ export default function HomePage() {
             fullWidth
             required
             margin="dense"
-            InputLabelProps={{ shrink: true }}
+            slotProps={{ inputLabel: { shrink: true } }}
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
