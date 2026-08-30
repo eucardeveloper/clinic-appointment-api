@@ -6,7 +6,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name="appointment")
+@Table(name = "appointment")
 @Getter
 @Setter
 public class Appointment {
@@ -22,4 +22,8 @@ public class Appointment {
     private LocalDateTime appointmentTime;
 
     private String department;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AppointmentStatus status = AppointmentStatus.PENDING;
 }

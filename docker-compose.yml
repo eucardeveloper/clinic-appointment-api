@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  clinic-db:
+    image: postgres:16-alpine
+    container_name: clinic-database
+    environment:
+      POSTGRES_DB: clinic_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5437:5432"
+    volumes:
+      - clinic-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  clinic-service:
+    build: .
+    container_name: clinic-backend
+    depends_on:
+      clinic-db:
+        condition: service_healthy
+    ports:
+      - "8084:8084"
+    environment:
+      PORT: 8084
+      SPRING_DATASOURCE_URL: jdbc:postgresql://clinic-db:5432/clinic_db
+      PGUSER: postgres
+      PGPASSWORD: postgres123
+      JWT_SECRET: clinic-api-secret-key-change-in-production-min32chars
+
+  clinic-app:
+    build:
+      context: ./frontend/clinic-app
+      args:
+        # Build-time: embeds into browser JS bundle
+        NEXT_PUBLIC_API_URL: http://localhost:8084
+    container_name: clinic-frontend
+    depends_on:
+      - clinic-service
+    ports:
+      - "3000:3000"
+    environment:
+      # Runtime: server-side Next.js rewrites use this (Docker internal network)
+      API_URL: http://clinic-service:8084
+      BACKEND_URL: http://clinic-service:8084
+      NODE_ENV: production
+
+volumes:
+  clinic-db-data:
