@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/lib/i18n-context'
+import { LANGUAGE_LABELS, type Language } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth-context'
 import CommandPalette from './CommandPalette'
 
@@ -28,7 +29,7 @@ interface NavItem {
 }
 
 export default function AppShell({ children, title, subtitle, onNewAppointment }: Props) {
-  const { t } = useI18n()
+  const { t, lang, setLang } = useI18n()
   const { user, setUser } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
@@ -36,9 +37,21 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
   const [mobileOpen, setMobileOpen] = useState(false)
   const [cmdOpen, setCmdOpen] = useState(false)
   const [notifCount] = useState(3) // TODO: real notifications
+  const [langOpen, setLangOpen] = useState(false)
 
   // Close mobile sidebar on route change
   useEffect(() => { setMobileOpen(false) }, [pathname])
+
+  // Close language dropdown on outside click
+  useEffect(() => {
+    if (!langOpen) return
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('[data-lang-menu]')) setLangOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [langOpen])
 
   // Keyboard shortcut ⌘K / Ctrl+K
   useEffect(() => {
@@ -227,6 +240,11 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
 
           {/* Emergency button — danger-soft, same on every page */}
           <button
+            onClick={() => {
+              if (window.confirm('⚠️ ' + t.navEmergency + ' — 112')) {
+                window.open('tel:112')
+              }
+            }}
             className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] bg-[hsl(var(--danger-soft))] text-[hsl(var(--danger))] text-sm font-medium hover:bg-[hsl(var(--danger)/0.2)] transition-colors"
             aria-label={t.navEmergency}
           >
@@ -252,6 +270,35 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
               <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[hsl(var(--danger))]" aria-hidden />
             )}
           </button>
+
+          {/* Language selector */}
+          <div className="relative" data-lang-menu>
+            <button
+              onClick={() => setLangOpen(v => !v)}
+              className="p-1.5 rounded-[var(--radius-md)] text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--surface-3))] hover:text-[hsl(var(--foreground))] transition-colors flex items-center gap-1"
+              aria-label="Language / Sprache / Dil"
+              title="Language"
+            >
+              <Globe size={18} />
+              <span className="hidden md:inline text-xs font-medium uppercase">{lang}</span>
+            </button>
+            {langOpen && (
+              <div className="absolute right-0 top-full mt-1 w-36 rounded-[var(--radius-md)] border border-[hsl(var(--border))] bg-[hsl(var(--surface-1))] shadow-lg z-50 overflow-hidden">
+                {(Object.keys(LANGUAGE_LABELS) as Language[]).map(l => (
+                  <button
+                    key={l}
+                    onClick={() => { setLang(l); setLangOpen(false) }}
+                    className={cn(
+                      'w-full text-left px-3 py-2 text-sm hover:bg-[hsl(var(--surface-3))] transition-colors',
+                      lang === l ? 'text-[hsl(var(--primary))] font-medium' : 'text-[hsl(var(--foreground))]'
+                    )}
+                  >
+                    {LANGUAGE_LABELS[l]}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* User avatar */}
           <div className="w-8 h-8 rounded-full bg-[hsl(var(--primary))] flex items-center justify-center flex-shrink-0">
