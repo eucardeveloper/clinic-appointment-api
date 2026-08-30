@@ -271,7 +271,7 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
               )}
             </button>
             {notifOpen && (
-              <div className="absolute right-0 top-full mt-1 w-72 rounded-[var(--radius-md)] border border-[hsl(var(--border))] bg-[hsl(var(--surface-1))] shadow-lg z-50 overflow-hidden">
+              <div className="absolute right-0 top-full mt-1 w-72 rounded-[var(--radius-md)] border border-[hsl(var(--border))] bg-[hsl(var(--surface-1))] shadow-2xl z-[9999] overflow-hidden">
                 <div className="px-4 py-3 border-b border-[hsl(var(--border))] flex items-center justify-between">
                   <span className="text-sm font-semibold text-[hsl(var(--foreground))]">{t.navNotifications}</span>
                   <span className="text-xs text-[hsl(var(--muted-foreground))]">{notifCount} new</span>
@@ -302,7 +302,7 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
               <span className="hidden md:inline text-xs font-medium uppercase">{lang}</span>
             </button>
             {langOpen && (
-              <div className="absolute right-0 top-full mt-1 w-36 rounded-[var(--radius-md)] border border-[hsl(var(--border))] bg-[hsl(var(--surface-1))] shadow-lg z-50 overflow-hidden">
+              <div className="absolute right-0 top-full mt-1 w-36 rounded-[var(--radius-md)] border border-[hsl(var(--border))] bg-[hsl(var(--surface-1))] shadow-2xl z-[9999] overflow-hidden">
                 {(Object.keys(LANGUAGE_LABELS) as Language[]).map(l => (
                   <button
                     key={l}
