@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Stethoscope, Calendar, ClipboardList,
   Bell, HelpCircle, Search, ChevronLeft, ChevronRight,
-  Menu, X, AlertTriangle, Plus, LogOut
+  Menu, X, AlertTriangle, Plus, LogOut, Globe
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/lib/i18n-context'
