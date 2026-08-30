@@ -208,7 +208,7 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden fade-in">
 
         {/* Top bar — identical across all pages */}
-        <header className="flex items-center gap-3 px-4 md:px-6 h-14 flex-shrink-0 border-b border-white/5 bg-[hsl(var(--surface-1))]/70 backdrop-blur-md">
+        <header className="relative z-[100] flex items-center gap-3 px-4 md:px-6 h-14 flex-shrink-0 border-b border-white/5 bg-[hsl(var(--surface-1))]/70 backdrop-blur-md">
           {/* Mobile hamburger */}
           <button
             className="md:hidden p-1.5 rounded text-[hsl(var(--muted-foreground))]"
