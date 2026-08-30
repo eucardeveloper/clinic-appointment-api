@@ -38,6 +38,8 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
   const [cmdOpen, setCmdOpen] = useState(false)
   const [notifCount] = useState(3) // TODO: real notifications
   const [langOpen, setLangOpen] = useState(false)
+  const [emergencyOpen, setEmergencyOpen] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
 
   // Close mobile sidebar on route change
   useEffect(() => { setMobileOpen(false) }, [pathname])
@@ -238,13 +240,9 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
 
           <div className="flex-1 hidden md:block" />
 
-          {/* Emergency button — danger-soft, same on every page */}
+          {/* Emergency button */}
           <button
-            onClick={() => {
-              if (window.confirm('⚠️ ' + t.navEmergency + ' — 112')) {
-                window.open('tel:112')
-              }
-            }}
+            onClick={() => setEmergencyOpen(true)}
             className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] bg-[hsl(var(--danger-soft))] text-[hsl(var(--danger))] text-sm font-medium hover:bg-[hsl(var(--danger)/0.2)] transition-colors"
             aria-label={t.navEmergency}
           >
@@ -261,15 +259,36 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
           </button>
 
           {/* Notifications */}
-          <button
-            className="relative p-1.5 rounded-[var(--radius-md)] text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--surface-3))] hover:text-[hsl(var(--foreground))] transition-colors"
-            aria-label={`${t.navNotifications} (${notifCount})`}
-          >
-            <Bell size={18} />
-            {notifCount > 0 && (
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[hsl(var(--danger))]" aria-hidden />
+          <div className="relative">
+            <button
+              onClick={() => setNotifOpen(v => !v)}
+              className="relative p-1.5 rounded-[var(--radius-md)] text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--surface-3))] hover:text-[hsl(var(--foreground))] transition-colors"
+              aria-label={`${t.navNotifications} (${notifCount})`}
+            >
+              <Bell size={18} />
+              {notifCount > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[hsl(var(--danger))]" aria-hidden />
+              )}
+            </button>
+            {notifOpen && (
+              <div className="absolute right-0 top-full mt-1 w-72 rounded-[var(--radius-md)] border border-[hsl(var(--border))] bg-[hsl(var(--surface-1))] shadow-lg z-50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-[hsl(var(--border))] flex items-center justify-between">
+                  <span className="text-sm font-semibold text-[hsl(var(--foreground))]">{t.navNotifications}</span>
+                  <span className="text-xs text-[hsl(var(--muted-foreground))]">{notifCount} new</span>
+                </div>
+                {[
+                  { msg: 'New appointment: Helga Richter → Dr. Emily Carter', time: '5m ago' },
+                  { msg: 'Appointment confirmed: patient1 → Dr. James Wilson', time: '1h ago' },
+                  { msg: 'No-show recorded: Gerhard Schäfer', time: '2h ago' },
+                ].map((n, i) => (
+                  <div key={i} className="px-4 py-3 hover:bg-[hsl(var(--surface-3))] border-b border-[hsl(var(--border)/0.5)] last:border-0 cursor-pointer">
+                    <p className="text-xs text-[hsl(var(--foreground))]">{n.msg}</p>
+                    <p className="text-[10px] text-[hsl(var(--muted-foreground))] mt-0.5">{n.time}</p>
+                  </div>
+                ))}
+              </div>
             )}
-          </button>
+          </div>
 
           {/* Language selector */}
           <div className="relative" data-lang-menu>
@@ -325,6 +344,39 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
 
       {/* Command Palette */}
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} onNewAppointment={onNewAppointment} />
+
+      {/* Emergency Modal */}
+      {emergencyOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setEmergencyOpen(false)}>
+          <div className="w-full max-w-sm rounded-xl bg-[hsl(var(--surface-1))] border border-[hsl(var(--danger)/0.4)] p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-[hsl(var(--danger-soft))] flex items-center justify-center flex-shrink-0">
+                <AlertTriangle size={20} className="text-[hsl(var(--danger))]" />
+              </div>
+              <div>
+                <h2 className="font-bold text-[hsl(var(--foreground))]">{t.navEmergency}</h2>
+                <p className="text-xs text-[hsl(var(--muted-foreground))]">Emergency Services</p>
+              </div>
+            </div>
+            <p className="text-sm text-[hsl(var(--muted-foreground))] mb-5">Call emergency services immediately?</p>
+            <div className="flex gap-3">
+              <a
+                href="tel:112"
+                className="flex-1 text-center py-2.5 rounded-[var(--radius-md)] bg-[hsl(var(--danger))] text-white font-semibold text-sm hover:opacity-90 transition-opacity"
+                onClick={() => setEmergencyOpen(false)}
+              >
+                📞 112
+              </a>
+              <button
+                onClick={() => setEmergencyOpen(false)}
+                className="flex-1 py-2.5 rounded-[var(--radius-md)] border border-[hsl(var(--border))] text-sm text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--surface-3))] transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
