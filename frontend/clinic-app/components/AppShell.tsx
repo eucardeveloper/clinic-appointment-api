@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  LayoutDashboard, Stethoscope, Calendar, ClipboardList,
+  LayoutDashboard, Stethoscope,
   Bell, HelpCircle, Search, ChevronLeft, ChevronRight,
   Menu, X, AlertTriangle, Plus, LogOut, Globe
 } from 'lucide-react'
