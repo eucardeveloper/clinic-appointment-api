@@ -359,19 +359,22 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
               </div>
             </div>
             <p className="text-sm text-[hsl(var(--muted-foreground))] mb-5">Call emergency services immediately?</p>
+            <div className="rounded-lg bg-[hsl(var(--danger-soft))] border border-[hsl(var(--danger)/0.3)] p-3 mb-4 text-center">
+              <p className="text-2xl font-bold text-[hsl(var(--danger))]">📞 112</p>
+              <p className="text-xs text-[hsl(var(--danger))] mt-1">European Emergency Number</p>
+            </div>
             <div className="flex gap-3">
-              <a
-                href="tel:112"
-                className="flex-1 text-center py-2.5 rounded-[var(--radius-md)] bg-[hsl(var(--danger))] text-white font-semibold text-sm hover:opacity-90 transition-opacity"
-                onClick={() => setEmergencyOpen(false)}
+              <button
+                onClick={() => { navigator.clipboard?.writeText('112'); setEmergencyOpen(false) }}
+                className="flex-1 py-2.5 rounded-[var(--radius-md)] bg-[hsl(var(--danger))] text-white font-semibold text-sm hover:opacity-90 transition-opacity"
               >
-                📞 112
-              </a>
+                Copy Number
+              </button>
               <button
                 onClick={() => setEmergencyOpen(false)}
                 className="flex-1 py-2.5 rounded-[var(--radius-md)] border border-[hsl(var(--border))] text-sm text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--surface-3))] transition-colors"
               >
-                Cancel
+                Close
               </button>
             </div>
           </div>
