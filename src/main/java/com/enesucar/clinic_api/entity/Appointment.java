@@ -15,7 +15,15 @@ public class Appointment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Display name of the patient (e.g. "Ahmet Yılmaz") */
     private String patientName;
+
+    /**
+     * Login username of the patient (e.g. "patient1").
+     * Used for role-scoped filtering in the service layer; never shown to other patients.
+     */
+    @Column(name = "patient_username")
+    private String patientUsername;
 
     private String doctorName;
 

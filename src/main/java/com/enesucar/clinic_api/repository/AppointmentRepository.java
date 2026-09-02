@@ -5,6 +5,7 @@ import com.enesucar.clinic_api.entity.AppointmentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -72,10 +73,17 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     );
 
     /**
-     * A patient's own appointments. Matched on patient_name because Appointment has no FK to
-     * AppUser in this schema; the seed data and the booking form both write the username here.
-     * Backed by idx_appointment_patient_name (V8).
+     * A patient's own appointments, scoped by their login username stored in patient_username.
+     * patient_name holds the display name; patient_username is the auth identity.
+     * Backed by idx_appointment_patient_username (V9).
      */
+    List<Appointment> findByPatientUsername(String patientUsername);
+
+    /**
+     * @deprecated Use findByPatientUsername for role-scoped queries.
+     * Kept for backward compatibility with pre-V9 data where patient_username may be null.
+     */
+    @Deprecated
     List<Appointment> findByPatientName(String patientName);
 
     /**
@@ -91,4 +99,12 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             WHERE a.doctorName = (SELECT d.name FROM Doctor d WHERE d.username = :username)
             """)
     List<Appointment> findByDoctorUsername(@Param("username") String username);
+
+    /**
+     * Bulk-renames doctor name on all appointments when a doctor's name is changed.
+     * Called from DoctorService.update() to keep appointment records in sync.
+     */
+    @Modifying
+    @Query("UPDATE Appointment a SET a.doctorName = :newName WHERE a.doctorName = :oldName")
+    int updateDoctorName(@Param("oldName") String oldName, @Param("newName") String newName);
 }

@@ -66,6 +66,9 @@ public class SecurityConfig {
                 // Read: authenticated users
                 .requestMatchers(HttpMethod.GET, "/api/appointments/**").authenticated()
 
+                // Admin user management
+                .requestMatchers("/api/admin/users/**").hasRole("ADMIN")
+
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())

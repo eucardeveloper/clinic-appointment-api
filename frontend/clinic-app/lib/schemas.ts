@@ -9,6 +9,10 @@ export const appointmentSchema = z.object({
     .string()
     .min(2, 'Patient name must be at least 2 characters')
     .max(100, 'Patient name must be at most 100 characters'),
+  patientUsername: z
+    .string()
+    .max(100)
+    .optional(),
   doctorName: z
     .string()
     .min(1, 'Please select a doctor'),

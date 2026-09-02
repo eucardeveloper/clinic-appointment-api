@@ -40,6 +40,13 @@ public class DoctorController {
         return doctorService.toggleStatus(id, request.active());
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public DoctorResponse update(@PathVariable Long id,
+                                 @Valid @RequestBody DoctorRequest request) {
+        return doctorService.update(id, request);
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {

@@ -12,7 +12,10 @@ import java.util.Set;
 public class AppointmentResponse {
 
     private Long id;
+    /** Human-readable display name (e.g. "Ahmet Yılmaz") */
     private String patientName;
+    /** Login username for patient-side filtering (e.g. "patient1") */
+    private String patientUsername;
     private String doctorName;
     private LocalDateTime appointmentTime;
     private String department;
@@ -20,7 +23,7 @@ public class AppointmentResponse {
 
     /**
      * The set of statuses this appointment can legally move to next.
-     * Frontend uses this to enable/disable action buttons — no hardcoding on the UI side.
+     * Frontend uses this to enable/disable action buttons.
      */
     private Set<AppointmentStatus> allowedTransitions;
 }

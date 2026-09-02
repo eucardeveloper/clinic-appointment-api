@@ -191,7 +191,7 @@ export function DataTable<T>({
                     checked={allSelected}
                     ref={el => { if (el) el.indeterminate = someSelected }}
                     onChange={toggleAll}
-                    aria-label="Tümünü seç"
+                    aria-label="Select all"
                     className="accent-[hsl(var(--primary))] w-4 h-4 cursor-pointer"
                   />
                 </th>
@@ -307,7 +307,7 @@ export function DataTable<T>({
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleRow(id)}
-                        aria-label={`Satır ${idx + 1} seç`}
+                        aria-label={`Select row ${idx + 1}`}
                         className="accent-[hsl(var(--primary))] w-4 h-4 cursor-pointer"
                       />
                     </td>

@@ -14,6 +14,13 @@ public class AppointmentRequest {
     @Size(min = 2, max = 100, message = "Patient name must be between 2 and 100 characters")
     private String patientName;
 
+    /**
+     * Login username of the patient — required so the system can scope
+     * the appointment to that patient's dashboard.
+     */
+    @Size(max = 100)
+    private String patientUsername;
+
     @NotBlank(message = "Doctor name must not be blank")
     @Size(min = 2, max = 100, message = "Doctor name must be between 2 and 100 characters")
     private String doctorName;

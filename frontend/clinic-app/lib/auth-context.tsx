@@ -6,6 +6,7 @@ export type UserRole = 'ROLE_ADMIN' | 'ROLE_DOCTOR' | 'ROLE_PATIENT'
 interface AuthUser {
   username: string
   role: UserRole
+  displayName?: string
 }
 
 interface AuthContextValue {
@@ -31,7 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch('/api/auth/me', { credentials: 'include' })
       if (res.ok) {
         const data = await res.json()
-        setUser({ username: data.username, role: data.role })
+        setUser({ username: data.username, role: data.role, displayName: data.displayName ?? undefined })
       } else {
         setUser(null)
       }

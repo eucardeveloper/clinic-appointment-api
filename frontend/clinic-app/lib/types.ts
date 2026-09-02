@@ -8,6 +8,7 @@ export type AppointmentStatus =
 export interface Appointment {
   id: number
   patientName: string
+  patientUsername?: string
   doctorName: string
   appointmentTime: string
   department: string
@@ -17,6 +18,7 @@ export interface Appointment {
 
 export interface AppointmentRequest {
   patientName: string
+  patientUsername?: string
   doctorName: string
   appointmentTime: string
   department: string

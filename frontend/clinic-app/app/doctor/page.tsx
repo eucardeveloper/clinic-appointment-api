@@ -1,6 +1,7 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+export const dynamic = 'force-dynamic'
+import { Suspense, useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Calendar, CheckCircle, AlertCircle, Clock } from 'lucide-react'
 import AppShell from '@/components/AppShell'
@@ -13,15 +14,24 @@ import { getAppointments, transitionStatus } from '@/lib/api'
 import { formatDateTime, cn } from '@/lib/utils'
 import type { Appointment, AppointmentStatus } from '@/lib/types'
 
-export default function DoctorDashboard() {
+// ── Inner component — useSearchParams requires Suspense in Next.js 15 ─────────
+function DoctorDashboardInner() {
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
   const { t } = useI18n()
   const qc = useQueryClient()
+  const searchParams = useSearchParams()
 
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [tlLoading, setTlLoading]   = useState(false)
   const [activeTab, setActiveTab]   = useState<'today' | 'week' | 'all'>('today')
+
+  // Sync tab with ?tab= query param — fires on every URL change
+  useEffect(() => {
+    const tab = searchParams.get('tab') as 'today' | 'week' | 'all' | null
+    if (tab) setActiveTab(tab)
+    else setActiveTab('today')
+  }, [searchParams])
 
   useEffect(() => {
     if (!authLoading && user?.role !== 'ROLE_DOCTOR') router.replace('/')
@@ -38,24 +48,8 @@ export default function DoctorDashboard() {
     enabled: user?.role === 'ROLE_DOCTOR',
   })
 
-  // Filter to this doctor's appointments
-  // Map login username → full doctor name as stored in appointments
-  const DOCTOR_NAME_MAP: Record<string, string> = {
-    'dr.wilson':   'Dr. James Wilson',
-    'dr.carter':   'Dr. Emily Carter',
-    'dr.cuddy':    'Dr. Lisa Cuddy',
-    'dr.park':     'Dr. Michael Park',
-    'dr.chen':     'Dr. Sarah Chen',
-    'dr.nguyen':   'Dr. Tom Nguyen',
-    'dr.webb':     'Dr. Marcus Webb',
-    'dr.kowalski': 'Dr. Anna Kowalski',
-    // legacy username kept for backward compat
-    'dr.weber':    'Dr. James Wilson',
-    'dr.schmidt':  'Dr. Marcus Webb',
-    'dr.mueller':  'Dr. Sarah Chen',
-  }
-  const myDoctorName = user?.username ? (DOCTOR_NAME_MAP[user.username] ?? user.username) : ''
-  const mine = all.filter(a => a.doctorName === myDoctorName)
+  // Backend already scopes appointments to this doctor via findByDoctorUsername.
+  const mine = all
 
   const now = new Date()
   const todayStr = now.toDateString()
@@ -93,7 +87,7 @@ export default function DoctorDashboard() {
     const id = selectedId
     setTlLoading(true)
     try { await transitionMut.mutateAsync({ id, status }) }
-    catch (_) { /* error handled in onError */ }
+    catch (_) { /* handled in onError */ }
     finally { setTlLoading(false) }
   }
 
@@ -104,7 +98,8 @@ export default function DoctorDashboard() {
   )
 
   return (
-    <AppShell subtitle="Doctor Portal">
+    <AppShell subtitle={t.doctorPortal}>
+      <div className="px-6 pt-6 pb-10 max-w-screen-xl mx-auto">
       {/* KPI */}
       <div className="grid grid-cols-3 gap-4 mb-8">
         <div className="rounded-xl glass-strong p-4 flex items-center gap-3">
@@ -187,6 +182,20 @@ export default function DoctorDashboard() {
           )}
         </div>
       </div>
+      </div>{/* end container */}
     </AppShell>
+  )
+}
+
+// ── Default export wraps inner component in Suspense (Next.js 15 requirement) ─
+export default function DoctorDashboard() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Skeleton className="h-16 w-48"/>
+      </div>
+    }>
+      <DoctorDashboardInner />
+    </Suspense>
   )
 }

@@ -109,6 +109,9 @@ export const toggleDoctorStatus = (id: number, active: boolean) =>
 export const deleteDoctor = (id: number) =>
   request<void>(`/doctors/${id}`, { method: 'DELETE' })
 
+export const updateDoctor = (id: number, data: DoctorRequest) =>
+  request<DoctorResponse>(`/doctors/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+
 // ── Departments ───────────────────────────────────────────────────────────────
 
 export interface DepartmentResponse {
@@ -133,3 +136,31 @@ export const createDepartment = (data: DepartmentRequest) =>
 
 export const deleteDepartment = (id: number) =>
   request<void>(`/departments/${id}`, { method: 'DELETE' })
+
+export const updateDepartment = (id: number, data: DepartmentRequest) =>
+  request<DepartmentResponse>(`/departments/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+
+// ── Admin User Management ────────────────────────────────────────────────────
+
+export interface UserResponse {
+  id: number
+  username: string
+  role: string
+  displayName?: string
+}
+
+export interface CreateUserRequest {
+  username: string
+  password: string
+  role: 'ROLE_DOCTOR' | 'ROLE_PATIENT'
+  displayName: string
+}
+
+export const getUsers = () =>
+  request<UserResponse[]>('/admin/users')
+
+export const createUser = (data: CreateUserRequest) =>
+  request<UserResponse>('/admin/users', { method: 'POST', body: JSON.stringify(data) })
+
+export const deleteUser = (id: number) =>
+  request<void>(`/admin/users/${id}`, { method: 'DELETE' })

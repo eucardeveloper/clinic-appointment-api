@@ -1,6 +1,7 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+export const dynamic = 'force-dynamic'
+import { Suspense, useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Calendar, ChevronRight, ChevronLeft, CheckCircle } from 'lucide-react'
 import AppShell from '@/components/AppShell'
@@ -8,32 +9,46 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/lib/auth-context'
 import { useI18n } from '@/lib/i18n-context'
-import { getAppointments, createAppointment, transitionStatus } from '@/lib/api'
-import { formatDateTime, DEPARTMENTS, GERMAN_DOCTORS, cn } from '@/lib/utils'
+import { getAppointments, createAppointment, transitionStatus, getDoctors, getDepartments } from '@/lib/api'
+import { formatDateTime, cn } from '@/lib/utils'
 import type { Appointment, AppointmentStatus, AppointmentRequest } from '@/lib/types'
 
 type WizardStep = 'department' | 'doctor' | 'datetime' | 'confirm'
 
-export default function PatientDashboard() {
+// ── Inner component — useSearchParams requires Suspense in Next.js 15 ─────────
+function PatientDashboardInner() {
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
   const { t } = useI18n()
   const qc = useQueryClient()
+  const searchParams = useSearchParams()
 
   const [activeTab, setActiveTab]   = useState<'upcoming' | 'past'>('upcoming')
   const [showWizard, setShowWizard] = useState(false)
   const [step, setStep]             = useState<WizardStep>('department')
   const [form, setForm]             = useState<AppointmentRequest>({
-    patientName: '', doctorName: '', appointmentTime: '', department: '',
+    patientName: '', patientUsername: '', doctorName: '', appointmentTime: '', department: '',
   })
   const [conflictSlots, setConflictSlots] = useState<string[]>([])
+
+  // Auto-open wizard when ?new=1 is in URL (sidebar shortcut) — reacts to URL changes
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setShowWizard(true)
+      setStep('department')
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (!authLoading && user?.role !== 'ROLE_PATIENT') router.replace('/')
   }, [user, authLoading, router])
 
   useEffect(() => {
-    if (user?.username) setForm(f => ({ ...f, patientName: user.username }))
+    if (user?.username) setForm(f => ({
+      ...f,
+      patientName: user.displayName ?? user.username,
+      patientUsername: user.username,
+    }))
   }, [user])
 
   const STATUS_LABELS: Record<AppointmentStatus, string> = {
@@ -47,7 +62,21 @@ export default function PatientDashboard() {
     enabled: user?.role === 'ROLE_PATIENT',
   })
 
-  const mine     = all.filter(a => a.patientName === user?.username)
+  const { data: doctorList = [] } = useQuery({
+    queryKey: ['doctors'],
+    queryFn: getDoctors,
+    refetchOnMount: 'always',
+  })
+  const { data: departmentList = [] } = useQuery({
+    queryKey: ['departments'],
+    queryFn: getDepartments,
+    refetchOnMount: 'always',
+  })
+  const activeDoctorNames = doctorList.filter(d => d.active).map(d => d.name)
+  const departmentNames   = departmentList.map(d => d.name)
+
+  // Backend already scopes to this patient via findByPatientUsername/findByPatientName
+  const mine = all
   const now      = new Date()
   const upcoming = mine.filter(a => new Date(a.appointmentTime) >= now && a.status !== 'CANCELLED')
   const past     = mine.filter(a => new Date(a.appointmentTime) < now || a.status === 'CANCELLED')
@@ -85,7 +114,8 @@ export default function PatientDashboard() {
   )
 
   return (
-    <AppShell subtitle="Patient Portal">
+    <AppShell subtitle={t.patientPortal}>
+      <div className="px-6 pt-6 pb-10 max-w-screen-xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-semibold">My Appointments</h2>
         <button onClick={() => { setShowWizard(true); setStep('department') }}
@@ -102,7 +132,7 @@ export default function PatientDashboard() {
             aria-selected={activeTab === tab}
             className={cn('px-4 py-1.5 rounded-md text-sm font-medium transition-colors',
               activeTab === tab ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
-            {tab === 'upcoming' ? 'Upcoming' : 'Past'}
+            {tab === 'upcoming' ? t.upcoming : t.past}
             <span className="ml-1.5 rounded-full bg-muted-foreground/20 px-1.5 py-0.5 text-xs">
               {tab === 'upcoming' ? upcoming.length : past.length}
             </span>
@@ -142,6 +172,8 @@ export default function PatientDashboard() {
         </div>
       )}
 
+      </div>{/* end container */}
+
       {/* Wizard Modal */}
       {showWizard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="wizard-title">
@@ -158,7 +190,7 @@ export default function PatientDashboard() {
 
               {step === 'department' && (
                 <div className="grid grid-cols-2 gap-2" role="group" aria-label="Select department">
-                  {DEPARTMENTS.map(d => (
+                  {departmentNames.map(d => (
                     <button key={d} onClick={() => setForm(f => ({...f, department: d}))}
                       className={cn('rounded-lg border p-3 text-sm text-left transition-colors',
                         form.department === d ? 'border-primary bg-primary/5 font-medium' : 'hover:bg-muted')}>
@@ -170,7 +202,7 @@ export default function PatientDashboard() {
 
               {step === 'doctor' && (
                 <div className="space-y-2" role="group" aria-label="Select doctor">
-                  {GERMAN_DOCTORS.map(d => (
+                  {activeDoctorNames.map(d => (
                     <button key={d} onClick={() => setForm(f => ({...f, doctorName: d}))}
                       className={cn('w-full rounded-lg border p-3 text-sm text-left flex items-center gap-3 transition-colors',
                         form.doctorName === d ? 'border-primary bg-primary/5 font-medium' : 'hover:bg-muted')}>
@@ -225,14 +257,14 @@ export default function PatientDashboard() {
                 <button onClick={step === 'department' ? () => setShowWizard(false) : () => setStep(steps[stepIndex-1])}
                   className="flex items-center gap-1 rounded-md border px-4 py-2 text-sm hover:bg-accent transition-colors">
                   <ChevronLeft className="h-4 w-4"/>
-                  {step === 'department' ? t.cancel : 'Back'}
+                  {step === 'department' ? t.cancel : t.back}
                 </button>
                 {step === 'confirm' ? (
                   <button disabled={createMut.isPending}
                     onClick={() => { setConflictSlots([]); createMut.mutate(form) }}
                     className="flex-1 flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors">
                     <CheckCircle className="h-4 w-4"/>
-                    {createMut.isPending ? t.saving : 'Confirm Booking'}
+                    {createMut.isPending ? t.saving : t.confirmBooking}
                   </button>
                 ) : (
                   <button disabled={!canNext}
@@ -247,5 +279,18 @@ export default function PatientDashboard() {
         </div>
       )}
     </AppShell>
+  )
+}
+
+// ── Default export wraps inner component in Suspense (Next.js 15 requirement) ─
+export default function PatientDashboard() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Skeleton className="h-16 w-48"/>
+      </div>
+    }>
+      <PatientDashboardInner />
+    </Suspense>
   )
 }

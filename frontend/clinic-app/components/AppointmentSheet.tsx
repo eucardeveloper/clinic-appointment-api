@@ -10,11 +10,11 @@ import { useI18n } from '@/lib/i18n-context'
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
-  PENDING:    { label: 'Bekleyen',    icon: Clock,        colorVar: '--warning' },
-  CONFIRMED:  { label: 'Onaylandı',  icon: CheckCircle,  colorVar: '--info'    },
-  COMPLETED:  { label: 'Tamamlandı', icon: CheckCircle,  colorVar: '--success' },
-  CANCELLED:  { label: 'İptal',      icon: Ban,          colorVar: '--danger'  },
-  NO_SHOW:    { label: 'Gelmedi',    icon: X,            colorVar: '--neutral' },
+  PENDING:    { label: 'Pending',    icon: Clock,        colorVar: '--warning' },
+  CONFIRMED:  { label: 'Confirmed',  icon: CheckCircle,  colorVar: '--info'    },
+  COMPLETED:  { label: 'Completed', icon: CheckCircle,  colorVar: '--success' },
+  CANCELLED:  { label: 'Cancelled',  icon: Ban,          colorVar: '--danger'  },
+  NO_SHOW:    { label: 'No Show',    icon: X,            colorVar: '--neutral' },
 } as const
 
 type AppointmentStatus = keyof typeof STATUS_CONFIG
@@ -29,7 +29,7 @@ function StatusBadge({ status }: { status: AppointmentStatus }) {
         color: `hsl(var(${cfg.colorVar}))`,
         backgroundColor: `hsl(var(${cfg.colorVar})/0.12)`,
       }}
-      aria-label={`Durum: ${cfg.label}`}
+      aria-label={`Status: ${cfg.label}`}
     >
       <Icon size={14} aria-hidden />
       {cfg.label}
@@ -97,7 +97,7 @@ export function AppointmentSheet({ appointment, open, onClose, onMarkDone, onRes
 
   if (!appointment) return null
 
-  const formattedDate = new Date(appointment.date).toLocaleDateString('tr-TR', {
+  const formattedDate = new Date(appointment.date).toLocaleDateString('en-GB', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
   })
 
@@ -118,7 +118,7 @@ export function AppointmentSheet({ appointment, open, onClose, onMarkDone, onRes
         ref={panelRef}
         role="dialog"
         aria-modal
-        aria-label="Randevu Detayı"
+        aria-label="Appointment Detail"
         className={cn(
           'fixed top-0 right-0 h-full z-40 flex flex-col',
           'bg-[hsl(var(--surface-1))] border-l border-[hsl(var(--border))]',
@@ -129,11 +129,11 @@ export function AppointmentSheet({ appointment, open, onClose, onMarkDone, onRes
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[hsl(var(--border))]">
-          <span className="text-h2">Randevu Detayı</span>
+          <span className="text-h2">Appointment Detail</span>
           <button
             ref={closeRef}
             onClick={onClose}
-            aria-label="Kapat"
+            aria-label="Close"
             className="p-1.5 rounded-[var(--radius-md)] text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--surface-3))] hover:text-[hsl(var(--foreground))] transition-colors"
           >
             <X size={18} />
@@ -159,25 +159,25 @@ export function AppointmentSheet({ appointment, open, onClose, onMarkDone, onRes
 
           {/* Details */}
           <div className="card p-4 space-y-3 bg-[hsl(var(--surface-2))]">
-            <InfoRow icon={<Stethoscope size={14} />} label="Doktor" value={appointment.doctorName} />
-            <InfoRow icon={<Building2 size={14} />} label="Bölüm" value={appointment.department} />
-            <InfoRow icon={<Calendar size={14} />} label="Tarih" value={formattedDate} />
-            <InfoRow icon={<Clock size={14} />} label="Saat" value={appointment.time} />
+            <InfoRow icon={<Stethoscope size={14} />} label="Doctor" value={appointment.doctorName} />
+            <InfoRow icon={<Building2 size={14} />} label="Department" value={appointment.department} />
+            <InfoRow icon={<Calendar size={14} />} label="Date" value={formattedDate} />
+            <InfoRow icon={<Clock size={14} />} label="Time" value={appointment.time} />
             {appointment.complaint && (
-              <InfoRow icon={<MessageSquare size={14} />} label="Şikâyet" value={appointment.complaint} />
+              <InfoRow icon={<MessageSquare size={14} />} label="Complaint" value={appointment.complaint} />
             )}
           </div>
 
           {/* Past appointments */}
           {appointment.history && appointment.history.length > 0 && (
             <div>
-              <h3 className="text-label text-[hsl(var(--muted-foreground))] mb-3">Geçmiş Randevular</h3>
+              <h3 className="text-label text-[hsl(var(--muted-foreground))] mb-3">Past Appointments</h3>
               <div className="space-y-2">
                 {appointment.history.map((h, i) => (
                   <div key={i} className="flex items-center justify-between py-2 border-b border-[hsl(var(--border))] last:border-0">
                     <div>
                       <p className="text-sm text-[hsl(var(--foreground))]">
-                        {new Date(h.date).toLocaleDateString('tr-TR')}
+                        {new Date(h.date).toLocaleDateString('en-GB')}
                       </p>
                       <p className="text-xs text-[hsl(var(--muted-foreground))]">{h.complaint}</p>
                     </div>

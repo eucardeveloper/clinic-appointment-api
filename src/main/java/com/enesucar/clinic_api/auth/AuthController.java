@@ -15,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import java.util.Optional;
 
 /**
  * Authentication endpoints.
@@ -33,10 +34,14 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final AppUserRepository appUserRepository;
 
-    public AuthController(AuthenticationManager authenticationManager, JwtService jwtService) {
+    public AuthController(AuthenticationManager authenticationManager,
+                          JwtService jwtService,
+                          AppUserRepository appUserRepository) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
+        this.appUserRepository = appUserRepository;
     }
 
     @PostMapping("/login")
@@ -70,7 +75,10 @@ public class AuthController {
     public ResponseEntity<MeResponse> me(@AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) return ResponseEntity.status(401).build();
         String role = userDetails.getAuthorities().iterator().next().getAuthority();
-        return ResponseEntity.ok(new MeResponse(userDetails.getUsername(), role));
+        String displayName = appUserRepository.findByUsername(userDetails.getUsername())
+                .map(AppUser::getDisplayName)
+                .orElse(null);
+        return ResponseEntity.ok(new MeResponse(userDetails.getUsername(), role, displayName));
     }
 
     @PostMapping("/logout")

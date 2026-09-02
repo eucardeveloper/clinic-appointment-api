@@ -43,6 +43,25 @@ public class DepartmentService {
         return toResponse(departmentRepository.save(dept));
     }
 
+
+    public DepartmentResponse update(Long id, DepartmentRequest request) {
+        Department dept = departmentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Department not found"));
+
+        // Allow rename only if the new name doesn't conflict with another department
+        if (!dept.getName().equals(request.name()) && departmentRepository.existsByName(request.name())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A department with this name already exists");
+        }
+
+        dept.setName(request.name());
+        dept.setFloor(request.floor());
+        dept.setHeadDoctor(request.headDoctor());
+
+        return toResponse(departmentRepository.save(dept));
+    }
+
     public void delete(Long id) {
         if (!departmentRepository.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Department not found");

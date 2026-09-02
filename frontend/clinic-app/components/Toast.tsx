@@ -1,11 +1,11 @@
 'use client'
 
 /**
- * Toast sistemi — tek kaynak, üst üste yığılmaz.
- * Kullanım:
+ * Toast system — single source, no stacking.
+ * Usage:
  *   const toast = useToast()
  *   toast.success('Kaydedildi', { action: { label: 'Geri Al', onClick: undo } })
- *   toast.error('Hata oluştu')
+ *   toast.error('An error occurred')
  */
 
 import { createContext, useContext, useState, useCallback, useRef } from 'react'

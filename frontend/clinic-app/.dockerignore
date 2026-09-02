@@ -1,0 +1,28 @@
+# Dependencies — installed fresh inside Docker via npm ci
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js build output — rebuilt inside Docker
+.next
+out
+
+# Dev/test artifacts
+.env*.local
+*.test.ts
+*.test.tsx
+__tests__
+playwright-report
+test-results
+
+# Editor / OS
+.DS_Store
+.vscode
+*.swp
+*.swo
+Thumbs.db
+
+# Git
+.git
+.gitignore

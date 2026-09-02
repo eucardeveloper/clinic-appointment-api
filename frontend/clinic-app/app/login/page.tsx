@@ -144,7 +144,7 @@ export default function LoginPage() {
               <p className="font-medium">Test credentials:</p>
               <p>admin / admin123 (Admin)</p>
               <p>dr.wilson / doctor123 (Doctor)</p>
-              <p>patient1 / patient123 (Patient)</p>
+              <p>ahmet.yilmaz / patient123 (Patient)</p>
             </div>
           </div>
         </div>

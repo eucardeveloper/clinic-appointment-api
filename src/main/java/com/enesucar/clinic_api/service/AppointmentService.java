@@ -74,7 +74,11 @@ public class AppointmentService {
         } else if (isDoctor) {
             visible = appointmentRepository.findByDoctorUsername(username);
         } else {
-            visible = appointmentRepository.findByPatientName(username);
+            // Prefer patientUsername (V9+); fall back to patientName for legacy rows
+            visible = appointmentRepository.findByPatientUsername(username);
+            if (visible.isEmpty()) {
+                visible = appointmentRepository.findByPatientName(username);
+            }
         }
 
         return visible.stream().map(this::toResponse).toList();
@@ -109,6 +113,7 @@ public class AppointmentService {
 
         Appointment appointment = new Appointment();
         appointment.setPatientName(request.getPatientName());
+        appointment.setPatientUsername(request.getPatientUsername());
         appointment.setDoctorName(request.getDoctorName());
         appointment.setAppointmentTime(request.getAppointmentTime());
         appointment.setDepartment(request.getDepartment());
@@ -125,6 +130,7 @@ public class AppointmentService {
 
         Appointment appointment = findById(id);
         appointment.setPatientName(request.getPatientName());
+        appointment.setPatientUsername(request.getPatientUsername());
         appointment.setDoctorName(request.getDoctorName());
         appointment.setAppointmentTime(request.getAppointmentTime());
         appointment.setDepartment(request.getDepartment());
@@ -221,6 +227,7 @@ public class AppointmentService {
         AppointmentResponse response = new AppointmentResponse();
         response.setId(appointment.getId());
         response.setPatientName(appointment.getPatientName());
+        response.setPatientUsername(appointment.getPatientUsername());
         response.setDoctorName(appointment.getDoctorName());
         response.setAppointmentTime(appointment.getAppointmentTime());
         response.setDepartment(appointment.getDepartment());

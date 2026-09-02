@@ -5,6 +5,7 @@ import com.enesucar.clinic_api.dto.DoctorResponse;
 import com.enesucar.clinic_api.entity.Department;
 import com.enesucar.clinic_api.entity.Doctor;
 import com.enesucar.clinic_api.repository.DepartmentRepository;
+import com.enesucar.clinic_api.repository.AppointmentRepository;
 import com.enesucar.clinic_api.repository.DoctorRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -19,11 +20,14 @@ public class DoctorService {
 
     private final DoctorRepository doctorRepository;
     private final DepartmentRepository departmentRepository;
+    private final AppointmentRepository appointmentRepository;
 
     public DoctorService(DoctorRepository doctorRepository,
-                         DepartmentRepository departmentRepository) {
+                         DepartmentRepository departmentRepository,
+                         AppointmentRepository appointmentRepository) {
         this.doctorRepository = doctorRepository;
         this.departmentRepository = departmentRepository;
+        this.appointmentRepository = appointmentRepository;
     }
 
     @Transactional(readOnly = true)
@@ -35,32 +39,56 @@ public class DoctorService {
     }
 
     public DoctorResponse create(DoctorRequest request) {
-        if (doctorRepository.existsByEmail(request.email())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "A doctor with this email already exists");
-        }
-
-        Doctor doctor = new Doctor();
-        doctor.setName(request.name());
-        doctor.setEmail(request.email());
-        doctor.setPhone(request.phone());
-        doctor.setActive(true);
-
-        if (request.departmentId() != null) {
-            Department dept = departmentRepository.findById(request.departmentId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                            "Department not found"));
-            doctor.setDepartment(dept);
-        }
-
-        return toResponse(doctorRepository.save(doctor));
+    if (doctorRepository.existsByEmail(request.email())) {
+        throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "A doctor with this email already exists");
     }
+
+    Doctor doctor = new Doctor();
+    doctor.setName(request.name());
+    doctor.setEmail(request.email());
+    doctor.setPhone(request.phone());
+    doctor.setActive(true);
+
+    if (request.departmentId() != null) {
+        Department dept = departmentRepository.findById(request.departmentId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Department not found"));
+        doctor.setDepartment(dept);
+    }
+
+    return toResponse(doctorRepository.save(doctor));
+}
 
     public DoctorResponse toggleStatus(Long id, boolean active) {
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Doctor not found"));
         doctor.setActive(active);
+        return toResponse(doctorRepository.save(doctor));
+    }
+
+
+    public DoctorResponse update(Long id, DoctorRequest request) {
+        Doctor doctor = doctorRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Doctor not found"));
+
+        doctor.setName(request.name());
+        doctor.setEmail(request.email());
+        if (request.phone() != null) {
+            doctor.setPhone(request.phone());
+        }
+
+        if (request.departmentId() != null) {
+            Department dept = departmentRepository.findById(request.departmentId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                            "Department not found"));
+            doctor.setDepartment(dept);
+        } else {
+            doctor.setDepartment(null);
+        }
+
         return toResponse(doctorRepository.save(doctor));
     }
 

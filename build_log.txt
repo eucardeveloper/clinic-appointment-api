@@ -1,0 +1,233 @@
+time="2026-08-31T10:56:01+03:00" level=warning msg="C:\\Users\\enes_\\OneDrive\\Desktop\\clinic-appointment-api\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+ Image clinic-appointment-api-clinic-app Building 
+ Image clinic-appointment-api-clinic-service Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 1.29kB 0.1s done
+#1 DONE 0.1s
+
+#2 [clinic-app internal] load build definition from Dockerfile
+#2 transferring dockerfile: 1.43kB 0.0s done
+#2 DONE 0.0s
+
+#3 [clinic-service internal] load build definition from Dockerfile
+#3 transferring dockerfile: 1.06kB 0.0s done
+#3 DONE 0.1s
+
+#4 [clinic-service internal] load metadata for docker.io/library/eclipse-temurin:21-jre-alpine
+#4 ...
+
+#5 [clinic-service internal] load metadata for docker.io/library/eclipse-temurin:21-jdk-alpine
+#5 DONE 1.1s
+
+#4 [clinic-service internal] load metadata for docker.io/library/eclipse-temurin:21-jre-alpine
+#4 DONE 1.1s
+
+#6 [clinic-app internal] load metadata for docker.io/library/node:20-alpine
+#6 DONE 1.2s
+
+#7 [clinic-service internal] load .dockerignore
+#7 transferring context: 2B done
+#7 DONE 0.0s
+
+#8 [clinic-app internal] load .dockerignore
+#8 transferring context: 2B done
+#8 DONE 0.1s
+
+#9 [clinic-service internal] load build context
+#9 DONE 0.0s
+
+#10 [clinic-app internal] load build context
+#10 DONE 0.0s
+
+#11 [clinic-app deps 1/4] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#11 resolve docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#11 ...
+
+#12 [clinic-service stage-1 1/4] FROM docker.io/library/eclipse-temurin:21-jre-alpine@sha256:974b08960c5d96694c780e65b2d5705268ab1e1ca1a0dd0caf4ba6c3fe34d699
+#12 resolve docker.io/library/eclipse-temurin:21-jre-alpine@sha256:974b08960c5d96694c780e65b2d5705268ab1e1ca1a0dd0caf4ba6c3fe34d699 0.1s done
+#12 DONE 0.1s
+
+#13 [clinic-service builder 1/7] FROM docker.io/library/eclipse-temurin:21-jdk-alpine@sha256:6ea5548706b60ac0a602eaf48af74792cbab012d90e811ca8db6184b16b5c3d6
+#13 resolve docker.io/library/eclipse-temurin:21-jdk-alpine@sha256:6ea5548706b60ac0a602eaf48af74792cbab012d90e811ca8db6184b16b5c3d6 0.1s done
+#13 DONE 0.1s
+
+#11 [clinic-app deps 1/4] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#11 resolve docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 0.1s done
+#11 DONE 0.1s
+
+#9 [clinic-service internal] load build context
+#9 transferring context: 6.12kB 0.0s done
+#9 DONE 0.1s
+
+#14 [clinic-service builder 2/7] WORKDIR /app
+#14 CACHED
+
+#15 [clinic-service builder 5/7] RUN ./mvnw dependency:go-offline -q
+#15 CACHED
+
+#16 [clinic-service stage-1 2/4] WORKDIR /app
+#16 CACHED
+
+#17 [clinic-service stage-1 3/4] RUN addgroup -S clinic && adduser -S clinic -G clinic
+#17 CACHED
+
+#18 [clinic-service builder 3/7] COPY .mvn/ .mvn/
+#18 CACHED
+
+#19 [clinic-service builder 4/7] COPY mvnw pom.xml ./
+#19 CACHED
+
+#20 [clinic-service builder 7/7] RUN ./mvnw package -DskipTests -q
+#20 CACHED
+
+#21 [clinic-service builder 6/7] COPY src ./src
+#21 CACHED
+
+#22 [clinic-service stage-1 4/4] COPY --from=builder /app/target/*.jar app.jar
+#22 CACHED
+
+#23 [clinic-service] exporting to image
+#23 exporting layers 0.0s done
+#23 exporting manifest sha256:852a8e180d0d464cf3c566d28f90c44b80f57d05301332169ce5369f22d0f79f done
+#23 exporting config sha256:bf5824c06c2b80c58be710971f6758201b71e4ee91fe05671fe1d91fda9cc2c9 done
+#23 exporting attestation manifest sha256:9de3312d122aec6703e0f229c9c19f1c55d3bb9b2e4c7621e24b18d042d118b4
+#23 exporting attestation manifest sha256:9de3312d122aec6703e0f229c9c19f1c55d3bb9b2e4c7621e24b18d042d118b4 0.0s done
+#23 exporting manifest list sha256:7c2a324530ffa8c970a8a2b1097398d5b4f54dce893963e65a2b3c15d011f9fe 0.0s done
+#23 naming to docker.io/library/clinic-appointment-api-clinic-service:latest done
+#23 unpacking to docker.io/library/clinic-appointment-api-clinic-service:latest 0.0s done
+#23 DONE 0.3s
+
+#10 [clinic-app internal] load build context
+#10 ...
+
+#24 [clinic-service] resolving provenance for metadata file
+#24 DONE 0.0s
+
+#10 [clinic-app internal] load build context
+#10 transferring context: 2.57MB 3.3s done
+#10 DONE 3.4s
+
+#25 [clinic-app deps 2/4] WORKDIR /app
+#25 CACHED
+
+#26 [clinic-app deps 3/4] COPY package.json package-lock.json* ./
+#26 CACHED
+
+#27 [clinic-app deps 4/4] RUN npm ci
+#27 CACHED
+
+#28 [clinic-app builder 3/5] COPY --from=deps /app/node_modules ./node_modules
+#28 CACHED
+
+#29 [clinic-app builder 4/5] COPY . .
+#29 DONE 15.6s
+
+#30 [clinic-app builder 5/5] RUN npm run build
+#30 1.361 
+#30 1.361 > clinic-app@0.1.0 build
+#30 1.361 > next build
+#30 1.361 
+#30 2.495    ▲ Next.js 15.3.4
+#30 2.496 
+#30 2.577    Creating an optimized production build ...
+#30 27.15  ✓ Compiled successfully in 19.0s
+#30 27.18    Linting and checking validity of types ...
+#30 27.57  ⨯ ESLint: Cannot find module '/app/node_modules/eslint-config-next/core-web-vitals' imported from /app/eslint.config.mjs Did you mean to import "eslint-config-next/core-web-vitals.js"?
+#30 36.21    Collecting page data ...
+#30 39.38    Generating static pages (0/16) ...
+#30 40.79    Generating static pages (4/16) 
+#30 40.80    Generating static pages (8/16) 
+#30 40.80    Generating static pages (12/16) 
+#30 40.80  ✓ Generating static pages (16/16)
+#30 41.85    Finalizing page optimization ...
+#30 41.85    Collecting build traces ...
+#30 63.66 
+#30 63.66 Route (app)                                 Size  First Load JS
+#30 63.66 ┌ ○ /                                    1.33 kB         117 kB
+#30 63.66 ├ ○ /_not-found                            977 B         102 kB
+#30 63.66 ├ ○ /admin                               21.7 kB         187 kB
+#30 63.66 ├ ○ /admin/doctors                       3.99 kB         169 kB
+#30 63.66 ├ ƒ /api/appointments                      161 B         101 kB
+#30 63.66 ├ ƒ /api/appointments/[id]                 161 B         101 kB
+#30 63.66 ├ ƒ /api/appointments/[id]/status          161 B         101 kB
+#30 63.66 ├ ƒ /api/auth/login                        161 B         101 kB
+#30 63.66 ├ ƒ /api/auth/logout                       161 B         101 kB
+#30 63.66 ├ ƒ /api/auth/me                           161 B         101 kB
+#30 63.66 ├ ƒ /api/departments                       161 B         101 kB
+#30 63.66 ├ ƒ /api/departments/[id]                  161 B         101 kB
+#30 63.66 ├ ƒ /api/doctors                           161 B         101 kB
+#30 63.66 ├ ƒ /api/doctors/[id]                      161 B         101 kB
+#30 63.66 ├ ƒ /api/doctors/[id]/status               161 B         101 kB
+#30 63.66 ├ ○ /doctor                              3.59 kB         144 kB
+#30 63.66 ├ ○ /login                               4.13 kB         110 kB
+#30 63.66 └ ○ /patient                             3.16 kB         144 kB
+#30 63.66 + First Load JS shared by all             101 kB
+#30 63.66   ├ chunks/4bd1b696-02a042246909e5cd.js  53.2 kB
+#30 63.66   ├ chunks/684-7b6559d33c0b622f.js       45.9 kB
+#30 63.66   └ other shared chunks (total)          1.92 kB
+#30 63.66 
+#30 63.66 
+#30 63.66 ○  (Static)   prerendered as static content
+#30 63.66 ƒ  (Dynamic)  server-rendered on demand
+#30 63.66 
+#30 63.77 npm notice
+#30 63.77 npm notice New major version of npm available! 10.8.2 -> 12.0.2
+#30 63.77 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2
+#30 63.77 npm notice To update run: npm install -g npm@12.0.2
+#30 63.77 npm notice
+#30 DONE 63.9s
+
+#31 [clinic-app runner 3/6] RUN addgroup -S clinic && adduser -S clinic -G clinic
+#31 CACHED
+
+#32 [clinic-app runner 4/6] COPY --from=builder /app/public ./public
+#32 CACHED
+
+#33 [clinic-app runner 5/6] COPY --from=builder /app/.next/standalone ./
+#33 DONE 1.0s
+
+#34 [clinic-app runner 6/6] COPY --from=builder /app/.next/static ./.next/static
+#34 DONE 0.1s
+
+#35 [clinic-app] exporting to image
+#35 exporting layers
+#35 exporting layers 2.7s done
+#35 exporting manifest sha256:05ad0fb0d141efe687b3560b1a69ecd2d2fb824fbaba3c707351e90d9e7bd39d 0.0s done
+#35 exporting config sha256:7367752e653371e33053813f592bfbdb1d1a2555c5491fa2dbf3f793676d0aee 0.0s done
+#35 exporting attestation manifest sha256:2b010c9e5a1ba4c51d958652c2dae74ad3f06cdfcd1cb7f0ed6238af099873ad 0.0s done
+#35 exporting manifest list sha256:004d47e656b27e005930627324a66a30f1af2639a0ea599f9c39a68980ddcf14
+#35 exporting manifest list sha256:004d47e656b27e005930627324a66a30f1af2639a0ea599f9c39a68980ddcf14 0.0s done
+#35 naming to docker.io/library/clinic-appointment-api-clinic-app:latest done
+#35 unpacking to docker.io/library/clinic-appointment-api-clinic-app:latest
+#35 unpacking to docker.io/library/clinic-appointment-api-clinic-app:latest 1.4s done
+#35 DONE 4.3s
+
+#36 [clinic-app] resolving provenance for metadata file
+#36 DONE 0.0s
+ Image clinic-appointment-api-clinic-service Built 
+ Image clinic-appointment-api-clinic-app Built 
+ Container clinic-backend Running 
+ Container clinic-database Running 
+ Container clinic-frontend Recreate 
+ Container clinic-frontend Recreated 
+Attaching to clinic-backend, clinic-database, clinic-frontend
+ Container clinic-database Waiting 
+ Container clinic-database Healthy 
+ Container clinic-frontend Starting 
+ Container clinic-frontend Started 
+clinic-frontend  |    ▲ Next.js 15.3.4
+clinic-frontend  |    - Local:        http://localhost:3000
+clinic-frontend  |    - Network:      http://0.0.0.0:3000
+clinic-frontend  | 
+clinic-frontend  |  ✓ Starting...
+clinic-frontend  |  ✓ Ready in 103ms
+clinic-database  | 2026-08-31 08:08:15.731 UTC [28] LOG:  checkpoint starting: time
+clinic-database  | 2026-08-31 08:08:16.019 UTC [28] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.217 s, sync=0.031 s, total=0.289 s; sync files=3, longest=0.028 s, average=0.011 s; distance=6 kB, estimate=6 kB; lsn=0/19F19A0, redo lsn=0/19F1968
+ Compose Stopping Gracefully Stopping... press Ctrl+C again to force
+ Container clinic-frontend Stopping 
+ Container clinic-frontend Stopped 
+ Container clinic-backend Stopping 
+ Container clinic-backend Stopped 
+ Container clinic-database Stopping 
+ Container clinic-database Stopped 
+

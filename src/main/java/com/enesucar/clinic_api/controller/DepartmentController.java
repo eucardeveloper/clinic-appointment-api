@@ -32,6 +32,13 @@ public class DepartmentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(departmentService.create(request));
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public DepartmentResponse update(@PathVariable Long id,
+                                     @Valid @RequestBody DepartmentRequest request) {
+        return departmentService.update(id, request);
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
