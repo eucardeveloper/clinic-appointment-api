@@ -208,7 +208,7 @@ Spring Boot (port 8084)
   │  Service layer (state machine, conflict detection)
   ▼
 PostgreSQL 16 (port 5437)
-  │  Flyway migrations (V1–V5)
+  │  Flyway migrations (V1–V11)
   │  appointment + app_user tables
 ```
 
