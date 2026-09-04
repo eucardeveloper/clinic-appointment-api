@@ -43,7 +43,7 @@ services:
     depends_on:
       - clinic-service
     ports:
-      - "3000:3000"
+      - "3003:3000"
     environment:
       # Runtime: server-side Next.js rewrites use this (Docker internal network)
       API_URL: http://clinic-service:8084
