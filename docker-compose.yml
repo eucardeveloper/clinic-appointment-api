@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  clinic-db:
+  clinic-database:
     image: postgres:16-alpine
     container_name: clinic-database
     environment:
@@ -18,22 +18,24 @@ services:
       timeout: 5s
       retries: 5
 
-  clinic-service:
+  clinic-backend:
     build: .
     container_name: clinic-backend
     depends_on:
-      clinic-db:
+      clinic-database:
         condition: service_healthy
     ports:
       - "8084:8084"
     environment:
       PORT: 8084
-      SPRING_DATASOURCE_URL: jdbc:postgresql://clinic-db:5432/clinic_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://clinic-database:5432/clinic_db
       PGUSER: postgres
       PGPASSWORD: postgres123
       JWT_SECRET: clinic-api-secret-key-change-in-production-min32chars
+      # Plain-HTTP localhost demo only. The application default is Secure=true (HTTPS); never set false in production.
+      APP_COOKIE_SECURE: "false"
 
-  clinic-app:
+  clinic-frontend:
     build:
       context: ./frontend/clinic-app
       args:
@@ -41,13 +43,13 @@ services:
         NEXT_PUBLIC_API_URL: http://localhost:8084
     container_name: clinic-frontend
     depends_on:
-      - clinic-service
+      - clinic-backend
     ports:
       - "3003:3000"
     environment:
       # Runtime: server-side Next.js rewrites use this (Docker internal network)
-      API_URL: http://clinic-service:8084
-      BACKEND_URL: http://clinic-service:8084
+      API_URL: http://clinic-backend:8084
+      BACKEND_URL: http://clinic-backend:8084
       NODE_ENV: production
 
 volumes:
