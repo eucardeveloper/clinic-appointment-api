@@ -111,6 +111,23 @@ public class AppointmentService {
         return new PagedResponse<>(page);
     }
 
+    /** Same as above, restricted to one patient's or one doctor's appointments (null = no restriction). */
+    public PagedResponse<AppointmentResponse> searchAppointments(
+            AppointmentStatus status,
+            String doctorName,
+            LocalDateTime from,
+            LocalDateTime to,
+            String patientUsername,
+            Long doctorId,
+            Pageable pageable) {
+
+        Page<AppointmentResponse> page = appointmentRepository
+                .findFilteredScoped(status, doctorName, from, to, patientUsername, doctorId, pageable)
+                .map(this::toResponse);
+
+        return new PagedResponse<>(page);
+    }
+
     /**
      * Books an appointment.
      *

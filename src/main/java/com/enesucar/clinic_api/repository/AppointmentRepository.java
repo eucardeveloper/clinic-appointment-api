@@ -77,6 +77,30 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     );
 
     /**
+     * Same filters as findFiltered plus an owner scope for non-admin callers:
+     * patientUsername restricts to one patient's appointments, doctorId to one doctor's.
+     * Both null means unscoped (ADMIN).
+     */
+    @Query("""
+            SELECT a FROM Appointment a
+            WHERE (:status IS NULL OR a.status = :status)
+              AND (:doctorName IS NULL OR LOWER(a.doctorName) LIKE LOWER(CONCAT('%', :doctorName, '%')))
+              AND (:from IS NULL OR a.appointmentTime >= :from)
+              AND (:to IS NULL OR a.appointmentTime <= :to)
+              AND (:patientUsername IS NULL OR a.patientUsername = :patientUsername)
+              AND (:doctorId IS NULL OR a.doctorId = :doctorId)
+            """)
+    Page<Appointment> findFilteredScoped(
+            @Param("status") AppointmentStatus status,
+            @Param("doctorName") String doctorName,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to,
+            @Param("patientUsername") String patientUsername,
+            @Param("doctorId") Long doctorId,
+            Pageable pageable
+    );
+
+    /**
      * A patient's own appointments, scoped by their login username stored in patient_username.
      * patient_name holds the display name; patient_username is the auth identity.
      * Backed by idx_appointment_patient_username (V9).

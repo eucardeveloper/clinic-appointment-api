@@ -22,6 +22,8 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
 
     Optional<Doctor> findFirstByNameIgnoreCaseOrderByIdAsc(String name);
 
+    Optional<Doctor> findByUsername(String username);
+
     /**
      * SELECT ... FOR UPDATE on the doctor row. Booking takes this lock before checking for
      * conflicts, so concurrent bookings for one doctor are serialised and the loser gets a

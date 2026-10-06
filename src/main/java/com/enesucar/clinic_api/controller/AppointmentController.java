@@ -5,6 +5,7 @@ import com.enesucar.clinic_api.dto.AppointmentResponse;
 import com.enesucar.clinic_api.dto.PagedResponse;
 import com.enesucar.clinic_api.dto.StatusTransitionRequest;
 import com.enesucar.clinic_api.entity.AppointmentStatus;
+import com.enesucar.clinic_api.security.AppointmentAccessPolicy;
 import com.enesucar.clinic_api.service.AppointmentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -26,10 +27,16 @@ import java.util.List;
 @Tag(name = "Appointments", description = "Manage clinic appointments")
 public class AppointmentController {
 
-    private final AppointmentService appointmentService;
+    private static final int MAX_PAGE_SIZE = 100;
+    private static final java.util.Set<String> SORTABLE =
+            java.util.Set.of("appointmentTime", "status", "doctorName", "patientName", "id");
 
-    public AppointmentController(AppointmentService appointmentService) {
+    private final AppointmentService appointmentService;
+    private final AppointmentAccessPolicy accessPolicy;
+
+    public AppointmentController(AppointmentService appointmentService, AppointmentAccessPolicy accessPolicy) {
         this.appointmentService = appointmentService;
+        this.accessPolicy = accessPolicy;
     }
 
     @GetMapping
@@ -53,12 +60,23 @@ public class AppointmentController {
             @RequestParam(defaultValue = "appointmentTime") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
+        if (!SORTABLE.contains(sortBy)) {
+            sortBy = "appointmentTime";
+        }
+        page = Math.max(page, 0);
+        size = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+
         Sort sort = sortDir.equalsIgnoreCase("desc")
                 ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();
 
         Pageable pageable = PageRequest.of(page, size, sort);
-        return ResponseEntity.ok(appointmentService.searchAppointments(status, doctorName, from, to, pageable));
+        // ADMIN sees everything; a doctor only their own schedule; a patient only their own bookings.
+        AppointmentAccessPolicy.Caller caller = accessPolicy.caller();
+        String patientScope = caller.patient() ? caller.username() : null;
+        Long doctorScope = accessPolicy.doctorIdOf(caller);
+        return ResponseEntity.ok(appointmentService.searchAppointments(
+                status, doctorName, from, to, patientScope, doctorScope, pageable));
     }
 
     @GetMapping("/{id}")
@@ -68,7 +86,9 @@ public class AppointmentController {
         @ApiResponse(responseCode = "404", description = "Appointment not found")
     })
     public ResponseEntity<AppointmentResponse> findAppointment(@PathVariable Long id) {
-        return ResponseEntity.ok(appointmentService.findAppointment(id));
+        AppointmentResponse appointment = appointmentService.findAppointment(id);
+        accessPolicy.assertCanAccess(appointment);
+        return ResponseEntity.ok(appointment);
     }
 
     @PostMapping
@@ -80,6 +100,7 @@ public class AppointmentController {
     })
     public ResponseEntity<AppointmentResponse> createAppointment(
             @Valid @RequestBody AppointmentRequest request) {
+        accessPolicy.applyOwnership(request);
         return ResponseEntity.ok(appointmentService.saveAppointment(request));
     }
 
@@ -94,6 +115,8 @@ public class AppointmentController {
     public ResponseEntity<AppointmentResponse> updateAppointment(
             @PathVariable Long id,
             @Valid @RequestBody AppointmentRequest request) {
+        accessPolicy.assertCanAccess(appointmentService.findAppointment(id));
+        accessPolicy.applyOwnership(request);
         return ResponseEntity.ok(appointmentService.updateAppointment(id, request));
     }
 
@@ -112,6 +135,7 @@ public class AppointmentController {
     public ResponseEntity<AppointmentResponse> transitionStatus(
             @PathVariable Long id,
             @Valid @RequestBody StatusTransitionRequest request) {
+        accessPolicy.assertCanAccess(appointmentService.findAppointment(id));
         return ResponseEntity.ok(appointmentService.transitionStatus(id, request));
     }
 
