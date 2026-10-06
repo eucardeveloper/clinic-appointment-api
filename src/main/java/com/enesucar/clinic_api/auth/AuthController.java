@@ -5,9 +5,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -25,7 +27,9 @@ import java.util.Optional;
  * POST /api/auth/logout — clears the JWT cookie
  *
  * Security: JWT is never exposed to JavaScript (XSS-safe).
- * Cookie is HttpOnly; set Secure + SameSite=Strict in production.
+ * The cookie is HttpOnly, SameSite=Strict by default and Secure by default.
+ * Both are configurable (app.cookie.secure, app.cookie.same-site); plain-HTTP demos set
+ * app.cookie.secure=false explicitly (see docker-compose.yml), production never should.
  */
 @RestController
 @RequestMapping("/api/auth")
@@ -35,13 +39,19 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final AppUserRepository appUserRepository;
+    private final boolean cookieSecure;
+    private final String cookieSameSite;
 
     public AuthController(AuthenticationManager authenticationManager,
                           JwtService jwtService,
-                          AppUserRepository appUserRepository) {
+                          AppUserRepository appUserRepository,
+                          @Value("${app.cookie.secure:true}") boolean cookieSecure,
+                          @Value("${app.cookie.same-site:Strict}") String cookieSameSite) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.appUserRepository = appUserRepository;
+        this.cookieSecure = cookieSecure;
+        this.cookieSameSite = cookieSameSite;
     }
 
     @PostMapping("/login")
@@ -60,7 +70,7 @@ public class AuthController {
         UserDetails userDetails = (UserDetails) auth.getPrincipal();
         String token = jwtService.generateToken(userDetails);
 
-        response.addCookie(buildTokenCookie(token, 24 * 60 * 60)); // 24h
+        response.addHeader(HttpHeaders.SET_COOKIE, buildTokenCookie(token, 24 * 60 * 60)); // 24h
 
         String role = userDetails.getAuthorities().iterator().next().getAuthority();
         return ResponseEntity.ok(new LoginResponse(userDetails.getUsername(), role, "Login successful"));
@@ -85,17 +95,18 @@ public class AuthController {
     @Operation(summary = "Clear JWT cookie and invalidate session")
     @ApiResponse(responseCode = "204", description = "Cookie cleared")
     public ResponseEntity<Void> logout(HttpServletResponse response) {
-        response.addCookie(buildTokenCookie("", 0)); // max-age=0 removes cookie
+        response.addHeader(HttpHeaders.SET_COOKIE, buildTokenCookie("", 0)); // max-age=0 removes cookie
         return ResponseEntity.noContent().build();
     }
 
-    private Cookie buildTokenCookie(String value, int maxAge) {
-        Cookie cookie = new Cookie("access_token", value);
-        cookie.setHttpOnly(true); // JS cannot read — prevents XSS token theft
-        cookie.setPath("/");
-        cookie.setMaxAge(maxAge);
-        // cookie.setSecure(true);               // enable for HTTPS production
-        // cookie.setAttribute("SameSite", "Strict"); // enable for production CSRF protection
-        return cookie;
+    private String buildTokenCookie(String value, long maxAgeSeconds) {
+        return ResponseCookie.from("access_token", value)
+                .httpOnly(true)               // JS cannot read it: prevents XSS token theft
+                .secure(cookieSecure)         // only sent over HTTPS (browsers also allow http://localhost)
+                .sameSite(cookieSameSite)     // not sent on cross-site requests: main CSRF defence
+                .path("/")
+                .maxAge(maxAgeSeconds)
+                .build()
+                .toString();
     }
 }
