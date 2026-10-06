@@ -155,3 +155,6 @@ Unit tests (Mockito) cover the service and state machine. Integration tests run 
 ## License
 
 MIT
+
+## Design decisions
+See [docs/DESIGN-DECISIONS.md](docs/DESIGN-DECISIONS.md).
