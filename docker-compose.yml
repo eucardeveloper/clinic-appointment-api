@@ -4,6 +4,7 @@ services:
   clinic-database:
     image: postgres:16-alpine
     container_name: clinic-database
+    restart: unless-stopped
     environment:
       POSTGRES_DB: clinic_db
       POSTGRES_USER: postgres
@@ -21,6 +22,7 @@ services:
   clinic-backend:
     build: .
     container_name: clinic-backend
+    restart: unless-stopped
     depends_on:
       clinic-database:
         condition: service_healthy
@@ -42,6 +44,7 @@ services:
         # Build-time: embeds into browser JS bundle
         NEXT_PUBLIC_API_URL: http://localhost:8084
     container_name: clinic-frontend
+    restart: unless-stopped
     depends_on:
       - clinic-backend
     ports:
