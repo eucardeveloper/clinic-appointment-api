@@ -25,7 +25,15 @@ public class Appointment {
     @Column(name = "patient_username")
     private String patientUsername;
 
+    /** Display name, kept in sync with doctor.name. The doctor_id column is the identity. */
     private String doctorName;
+
+    /**
+     * The doctor this appointment belongs to. Conflict checks, row locking and the
+     * ex_appointment_doctor_no_overlap exclusion constraint all use this id, never the name.
+     */
+    @Column(name = "doctor_id")
+    private Long doctorId;
 
     private LocalDateTime appointmentTime;
 

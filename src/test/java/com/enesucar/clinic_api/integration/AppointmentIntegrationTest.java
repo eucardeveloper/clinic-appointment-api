@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -17,6 +18,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Integration test using a real PostgreSQL container via Testcontainers.
@@ -40,6 +42,7 @@ class AppointmentIntegrationTest {
     AppointmentRepository repository;
 
     private static final String DOCTOR = "dr.weber";
+    private static final Long DOCTOR_ID = 7L;
     private static final LocalDateTime BASE_TIME =
             LocalDateTime.now().plusDays(1).withHour(10).withMinute(0).withSecond(0).withNano(0);
 
@@ -65,13 +68,38 @@ class AppointmentIntegrationTest {
         // Check 10:15 — within 30-min window → should conflict
         LocalDateTime overlap = BASE_TIME.plusMinutes(15);
         List<Appointment> conflicts = repository.findConflicting(
-                DOCTOR, -1L,
+                DOCTOR_ID, -1L,
                 List.of(AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW),
                 overlap.minusMinutes(30),
                 overlap.plusMinutes(30)
         );
 
         assertThat(conflicts).hasSize(1);
+    }
+
+    @Test
+    void findConflicting_slotsThatOnlyTouchDoNotConflict() {
+        // Booked 10:00-10:30; a request for 10:30 starts exactly when it ends
+        repository.save(appointment("Patient A", DOCTOR, BASE_TIME));
+
+        LocalDateTime touching = BASE_TIME.plusMinutes(30);
+        List<Appointment> conflicts = repository.findConflicting(
+                DOCTOR_ID, -1L,
+                List.of(AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW),
+                touching.minusMinutes(30),
+                touching.plusMinutes(30)
+        );
+
+        assertThat(conflicts).isEmpty();
+    }
+
+    @Test
+    void exclusionConstraint_rejectsOverlappingActiveAppointments() {
+        repository.saveAndFlush(appointment("Patient A", DOCTOR, BASE_TIME));
+
+        assertThatThrownBy(() ->
+                repository.saveAndFlush(appointment("Patient B", DOCTOR, BASE_TIME.plusMinutes(10))))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
@@ -83,7 +111,7 @@ class AppointmentIntegrationTest {
 
         // Same slot should now be free
         List<Appointment> conflicts = repository.findConflicting(
-                DOCTOR, -1L,
+                DOCTOR_ID, -1L,
                 List.of(AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW),
                 BASE_TIME.minusMinutes(30),
                 BASE_TIME.plusMinutes(30)
@@ -98,7 +126,7 @@ class AppointmentIntegrationTest {
 
         // Updating same appointment — should not conflict with itself
         List<Appointment> conflicts = repository.findConflicting(
-                DOCTOR, saved.getId(),
+                DOCTOR_ID, saved.getId(),
                 List.of(AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW),
                 BASE_TIME.minusMinutes(30),
                 BASE_TIME.plusMinutes(30)
@@ -116,7 +144,7 @@ class AppointmentIntegrationTest {
         repository.save(cancelled);
 
         List<LocalDateTime> booked = repository.findBookedSlots(
-                DOCTOR,
+                DOCTOR_ID,
                 List.of(AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW),
                 BASE_TIME.minusMinutes(1)
         );
@@ -131,6 +159,7 @@ class AppointmentIntegrationTest {
         Appointment a = new Appointment();
         a.setPatientName(patient);
         a.setDoctorName(doctor);
+        a.setDoctorId(DOCTOR_ID);
         a.setAppointmentTime(time);
         a.setDepartment("General");
         a.setStatus(AppointmentStatus.PENDING);

@@ -6,10 +6,13 @@ import com.enesucar.clinic_api.dto.PagedResponse;
 import com.enesucar.clinic_api.dto.StatusTransitionRequest;
 import com.enesucar.clinic_api.entity.Appointment;
 import com.enesucar.clinic_api.entity.AppointmentStatus;
+import com.enesucar.clinic_api.entity.Doctor;
 import com.enesucar.clinic_api.exception.AppointmentConflictException;
 import com.enesucar.clinic_api.exception.AppointmentNotFoundException;
+import com.enesucar.clinic_api.exception.DoctorNotFoundException;
 import com.enesucar.clinic_api.exception.InvalidStatusTransitionException;
 import com.enesucar.clinic_api.repository.AppointmentRepository;
+import com.enesucar.clinic_api.repository.DoctorRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -21,9 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Service
 public class AppointmentService {
@@ -35,9 +36,12 @@ public class AppointmentService {
             List.of(AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW);
 
     private final AppointmentRepository appointmentRepository;
+    private final DoctorRepository doctorRepository;
 
-    public AppointmentService(AppointmentRepository appointmentRepository) {
+    public AppointmentService(AppointmentRepository appointmentRepository,
+                              DoctorRepository doctorRepository) {
         this.appointmentRepository = appointmentRepository;
+        this.doctorRepository = doctorRepository;
     }
 
     /**
@@ -107,17 +111,27 @@ public class AppointmentService {
         return new PagedResponse<>(page);
     }
 
+    /**
+     * Books an appointment.
+     *
+     * <p>Concurrency: the doctor row is locked (SELECT ... FOR UPDATE) BEFORE the conflict
+     * check, so two requests for the same doctor run one after the other: the second sees the
+     * first one's committed row and receives a 409. The database exclusion constraint
+     * ex_appointment_doctor_no_overlap is the final guarantee if any path skips this lock.
+     */
     @Transactional
     public AppointmentResponse saveAppointment(AppointmentRequest request) {
-        checkConflict(request.getDoctorName(), request.getAppointmentTime(), -1L);
+        Doctor doctor = lockDoctor(request);
+        checkConflict(doctor, request.getAppointmentTime(), -1L);
 
         Appointment appointment = new Appointment();
         appointment.setPatientName(request.getPatientName());
         appointment.setPatientUsername(request.getPatientUsername());
-        appointment.setDoctorName(request.getDoctorName());
+        appointment.setDoctorId(doctor.getId());
+        appointment.setDoctorName(doctor.getName());
         appointment.setAppointmentTime(request.getAppointmentTime());
         appointment.setDepartment(request.getDepartment());
-        return toResponse(appointmentRepository.save(appointment));
+        return toResponse(appointmentRepository.saveAndFlush(appointment));
     }
 
     public AppointmentResponse findAppointment(Long id) {
@@ -126,15 +140,17 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponse updateAppointment(Long id, AppointmentRequest request) {
-        checkConflict(request.getDoctorName(), request.getAppointmentTime(), id);
+        Doctor doctor = lockDoctor(request);
+        checkConflict(doctor, request.getAppointmentTime(), id);
 
         Appointment appointment = findById(id);
         appointment.setPatientName(request.getPatientName());
         appointment.setPatientUsername(request.getPatientUsername());
-        appointment.setDoctorName(request.getDoctorName());
+        appointment.setDoctorId(doctor.getId());
+        appointment.setDoctorName(doctor.getName());
         appointment.setAppointmentTime(request.getAppointmentTime());
         appointment.setDepartment(request.getDepartment());
-        return toResponse(appointmentRepository.save(appointment));
+        return toResponse(appointmentRepository.saveAndFlush(appointment));
     }
 
     @PreAuthorize("hasAnyRole('ADMIN')")
@@ -173,19 +189,36 @@ public class AppointmentService {
     }
 
     /**
+     * Resolves the requested doctor (by id when given, otherwise by name) and takes a
+     * PESSIMISTIC_WRITE lock on that row for the rest of the transaction.
+     */
+    private Doctor lockDoctor(AppointmentRequest request) {
+        Long doctorId = request.getDoctorId();
+        if (doctorId == null) {
+            doctorId = doctorRepository
+                    .findFirstByNameIgnoreCaseOrderByIdAsc(request.getDoctorName())
+                    .map(Doctor::getId)
+                    .orElseThrow(() -> new DoctorNotFoundException(request.getDoctorName()));
+        }
+        Long id = doctorId;
+        return doctorRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new DoctorNotFoundException(String.valueOf(id)));
+    }
+
+    /**
      * Checks for scheduling conflicts and throws AppointmentConflictException
      * with the next 3 free slots if a conflict is found.
      */
-    private void checkConflict(String doctorName, LocalDateTime time, Long excludeId) {
+    private void checkConflict(Doctor doctor, LocalDateTime time, Long excludeId) {
         LocalDateTime from = time.minusMinutes(SLOT_DURATION_MINUTES);
         LocalDateTime to   = time.plusMinutes(SLOT_DURATION_MINUTES);
 
         List<Appointment> conflicts = appointmentRepository
-                .findConflicting(doctorName, excludeId, INACTIVE_STATUSES, from, to);
+                .findConflicting(doctor.getId(), excludeId, INACTIVE_STATUSES, from, to);
 
         if (!conflicts.isEmpty()) {
-            List<LocalDateTime> alternatives = findAlternativeSlots(doctorName, time, excludeId);
-            throw new AppointmentConflictException(doctorName, time, alternatives);
+            List<LocalDateTime> alternatives = findAlternativeSlots(doctor.getId(), time);
+            throw new AppointmentConflictException(doctor.getName(), time, alternatives);
         }
     }
 
@@ -193,14 +226,10 @@ public class AppointmentService {
      * Finds the next ALTERNATIVE_SLOTS_COUNT free 30-minute slots for the doctor
      * starting from the requested time. Skips already-booked slots.
      */
-    private List<LocalDateTime> findAlternativeSlots(String doctorName,
-                                                      LocalDateTime requestedTime,
-                                                      Long excludeId) {
+    private List<LocalDateTime> findAlternativeSlots(Long doctorId, LocalDateTime requestedTime) {
         // Fetch all booked times from requestedTime onward
         List<LocalDateTime> booked = appointmentRepository
-                .findBookedSlots(doctorName, INACTIVE_STATUSES, requestedTime);
-
-        Set<LocalDateTime> bookedSet = new HashSet<>(booked);
+                .findBookedSlots(doctorId, INACTIVE_STATUSES, requestedTime);
 
         List<LocalDateTime> alternatives = new ArrayList<>();
         LocalDateTime candidate = requestedTime.plusMinutes(SLOT_DURATION_MINUTES);
@@ -214,7 +243,7 @@ public class AppointmentService {
                         .atTime(8, 0);
                 continue;
             }
-            if (!bookedSet.contains(candidate)) {
+            if (isSlotFree(candidate, booked)) {
                 alternatives.add(candidate);
             }
             candidate = candidate.plusMinutes(SLOT_DURATION_MINUTES);
@@ -223,11 +252,27 @@ public class AppointmentService {
         return alternatives;
     }
 
+    /**
+     * A slot is free when no booked appointment starts within 30 minutes of it
+     * (the same overlap rule the database exclusion constraint enforces).
+     */
+    private boolean isSlotFree(LocalDateTime candidate, List<LocalDateTime> bookedStarts) {
+        LocalDateTime earliest = candidate.minusMinutes(SLOT_DURATION_MINUTES);
+        LocalDateTime latest = candidate.plusMinutes(SLOT_DURATION_MINUTES);
+        for (LocalDateTime booked : bookedStarts) {
+            if (booked.isAfter(earliest) && booked.isBefore(latest)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private AppointmentResponse toResponse(Appointment appointment) {
         AppointmentResponse response = new AppointmentResponse();
         response.setId(appointment.getId());
         response.setPatientName(appointment.getPatientName());
         response.setPatientUsername(appointment.getPatientUsername());
+        response.setDoctorId(appointment.getDoctorId());
         response.setDoctorName(appointment.getDoctorName());
         response.setAppointmentTime(appointment.getAppointmentTime());
         response.setDepartment(appointment.getDepartment());

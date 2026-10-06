@@ -5,10 +5,14 @@ import com.enesucar.clinic_api.dto.AppointmentResponse;
 import com.enesucar.clinic_api.dto.StatusTransitionRequest;
 import com.enesucar.clinic_api.entity.Appointment;
 import com.enesucar.clinic_api.entity.AppointmentStatus;
+import com.enesucar.clinic_api.entity.Doctor;
 import com.enesucar.clinic_api.exception.AppointmentConflictException;
 import com.enesucar.clinic_api.exception.AppointmentNotFoundException;
+import com.enesucar.clinic_api.exception.DoctorNotFoundException;
 import com.enesucar.clinic_api.exception.InvalidStatusTransitionException;
 import com.enesucar.clinic_api.repository.AppointmentRepository;
+import com.enesucar.clinic_api.repository.DoctorRepository;
+import org.mockito.InOrder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,14 +37,22 @@ class AppointmentServiceTest {
     @Mock
     private AppointmentRepository appointmentRepository;
 
+    @Mock
+    private DoctorRepository doctorRepository;
+
     @InjectMocks
     private AppointmentService appointmentService;
 
+    private Doctor doctor;
     private Appointment pendingAppointment;
     private final LocalDateTime futureTime = LocalDateTime.now().plusDays(1);
 
     @BeforeEach
     void setUp() {
+        doctor = new Doctor();
+        doctor.setId(7L);
+        doctor.setName("dr.weber");
+
         pendingAppointment = new Appointment();
         pendingAppointment.setId(1L);
         pendingAppointment.setPatientName("Thomas Müller");
@@ -79,20 +91,68 @@ class AppointmentServiceTest {
     @Test
     @DisplayName("saveAppointment persists with PENDING status")
     void saveAppointment_success() {
+        givenDoctorResolvableByName();
         when(appointmentRepository.findConflicting(any(), any(), any(), any(), any()))
                 .thenReturn(List.of());
-        when(appointmentRepository.save(any())).thenReturn(pendingAppointment);
+        when(appointmentRepository.saveAndFlush(any())).thenReturn(pendingAppointment);
 
         AppointmentRequest request = buildRequest("Thomas Müller", "dr.weber", futureTime, "Cardiology");
         AppointmentResponse response = appointmentService.saveAppointment(request);
 
         assertThat(response.getStatus()).isEqualTo(AppointmentStatus.PENDING);
-        verify(appointmentRepository).save(any(Appointment.class));
+        verify(appointmentRepository).saveAndFlush(any(Appointment.class));
+    }
+
+    @Test
+    @DisplayName("saveAppointment locks the doctor row before checking for conflicts")
+    void saveAppointment_locksDoctorBeforeConflictCheck() {
+        givenDoctorResolvableByName();
+        when(appointmentRepository.findConflicting(any(), any(), any(), any(), any()))
+                .thenReturn(List.of());
+        when(appointmentRepository.saveAndFlush(any())).thenReturn(pendingAppointment);
+
+        appointmentService.saveAppointment(
+                buildRequest("Thomas Müller", "dr.weber", futureTime, "Cardiology"));
+
+        InOrder order = inOrder(doctorRepository, appointmentRepository);
+        order.verify(doctorRepository).findByIdForUpdate(7L);
+        order.verify(appointmentRepository).findConflicting(eq(7L), anyLong(), any(), any(), any());
+        order.verify(appointmentRepository).saveAndFlush(any(Appointment.class));
+    }
+
+    @Test
+    @DisplayName("saveAppointment uses doctorId when given and ignores the name lookup")
+    void saveAppointment_doctorIdTakesPrecedence() {
+        when(doctorRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(doctor));
+        when(appointmentRepository.findConflicting(any(), any(), any(), any(), any()))
+                .thenReturn(List.of());
+        when(appointmentRepository.saveAndFlush(any())).thenReturn(pendingAppointment);
+
+        AppointmentRequest request = buildRequest("Thomas Müller", "some other name", futureTime, "Cardiology");
+        request.setDoctorId(7L);
+        appointmentService.saveAppointment(request);
+
+        verify(doctorRepository, never()).findFirstByNameIgnoreCaseOrderByIdAsc(any());
+    }
+
+    @Test
+    @DisplayName("saveAppointment throws DoctorNotFoundException for an unknown doctor")
+    void saveAppointment_unknownDoctor() {
+        when(doctorRepository.findFirstByNameIgnoreCaseOrderByIdAsc("nobody"))
+                .thenReturn(Optional.empty());
+
+        AppointmentRequest request = buildRequest("Thomas Müller", "nobody", futureTime, "Cardiology");
+
+        assertThatThrownBy(() -> appointmentService.saveAppointment(request))
+                .isInstanceOf(DoctorNotFoundException.class);
+
+        verify(appointmentRepository, never()).saveAndFlush(any());
     }
 
     @Test
     @DisplayName("saveAppointment throws 409 when doctor has conflict")
     void saveAppointment_conflict() {
+        givenDoctorResolvableByName();
         when(appointmentRepository.findConflicting(any(), any(), any(), any(), any()))
                 .thenReturn(List.of(pendingAppointment));
 
@@ -101,7 +161,7 @@ class AppointmentServiceTest {
         assertThatThrownBy(() -> appointmentService.saveAppointment(request))
                 .isInstanceOf(AppointmentConflictException.class);
 
-        verify(appointmentRepository, never()).save(any());
+        verify(appointmentRepository, never()).saveAndFlush(any());
     }
 
     // ── transitionStatus ─────────────────────────────────────────────────────
@@ -152,6 +212,12 @@ class AppointmentServiceTest {
     }
 
     // ── helper ───────────────────────────────────────────────────────────────
+
+    private void givenDoctorResolvableByName() {
+        when(doctorRepository.findFirstByNameIgnoreCaseOrderByIdAsc("dr.weber"))
+                .thenReturn(Optional.of(doctor));
+        when(doctorRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(doctor));
+    }
 
     private AppointmentRequest buildRequest(String patient, String doctor,
                                             LocalDateTime time, String dept) {

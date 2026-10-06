@@ -17,19 +17,23 @@ import java.util.List;
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
 
     /**
-     * Finds overlapping appointments for the same doctor within a ±30 minute window.
+     * Finds appointments of the same doctor whose 30-minute slot overlaps the requested one:
+     * start strictly between (time - 30 min) and (time + 30 min). Slots that only touch
+     * (10:00 and 10:30) do not conflict. This mirrors the ex_appointment_doctor_no_overlap
+     * exclusion constraint, which is the actual guarantee; this query exists to produce a
+     * friendly 409 with alternative slots.
      * Excludes CANCELLED and NO_SHOW — those slots are free again.
      * excludeId allows updates to skip the appointment being modified.
      */
     @Query("""
             SELECT a FROM Appointment a
-            WHERE a.doctorName = :doctorName
+            WHERE a.doctorId = :doctorId
               AND a.id <> :excludeId
               AND a.status NOT IN :ignoredStatuses
-              AND a.appointmentTime BETWEEN :from AND :to
+              AND a.appointmentTime > :from AND a.appointmentTime < :to
             """)
     List<Appointment> findConflicting(
-            @Param("doctorName") String doctorName,
+            @Param("doctorId") Long doctorId,
             @Param("excludeId") Long excludeId,
             @Param("ignoredStatuses") List<AppointmentStatus> ignoredStatuses,
             @Param("from") LocalDateTime from,
@@ -42,13 +46,13 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
      */
     @Query("""
             SELECT a.appointmentTime FROM Appointment a
-            WHERE a.doctorName = :doctorName
+            WHERE a.doctorId = :doctorId
               AND a.status NOT IN :ignoredStatuses
               AND a.appointmentTime >= :after
             ORDER BY a.appointmentTime ASC
             """)
     List<LocalDateTime> findBookedSlots(
-            @Param("doctorName") String doctorName,
+            @Param("doctorId") Long doctorId,
             @Param("ignoredStatuses") List<AppointmentStatus> ignoredStatuses,
             @Param("after") LocalDateTime after
     );

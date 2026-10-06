@@ -21,6 +21,12 @@ public class AppointmentRequest {
     @Size(max = 100)
     private String patientUsername;
 
+    /**
+     * Optional. When present it identifies the doctor unambiguously and takes precedence over
+     * doctorName; when absent the doctor is resolved from doctorName (backwards compatible).
+     */
+    private Long doctorId;
+
     @NotBlank(message = "Doctor name must not be blank")
     @Size(min = 2, max = 100, message = "Doctor name must be between 2 and 100 characters")
     private String doctorName;

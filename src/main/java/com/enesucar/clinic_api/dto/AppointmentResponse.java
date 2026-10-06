@@ -16,6 +16,7 @@ public class AppointmentResponse {
     private String patientName;
     /** Login username for patient-side filtering (e.g. "patient1") */
     private String patientUsername;
+    private Long doctorId;
     private String doctorName;
     private LocalDateTime appointmentTime;
     private String department;
