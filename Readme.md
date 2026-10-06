@@ -1,215 +1,157 @@
-# Clinic Appointment API
+# Clinic Appointment System
 
-A production-grade REST API for managing clinic appointments, built with **Spring Boot 3**, **Java 21**, and **PostgreSQL**.
+Appointment booking for a clinic: patients book, doctors confirm and complete, admins manage. Spring Boot REST API on PostgreSQL with a Next.js frontend, role-based dashboards, and database-enforced protection against double-booking a doctor.
 
----
+## Architecture
 
-## Architecture Decision: Why Monolith?
-
-This project is intentionally built as a **monolith**, not a microservice.
-
-A microservice split (separate services for appointments, users, notifications) would introduce:
-- Distributed transaction complexity (2PC / Saga pattern)
-- Network latency between services
-- Operational overhead (multiple deployments, service discovery)
-
-For a clinic with a single domain and a small team, a well-structured monolith delivers faster development, easier debugging, and simpler deployment — without sacrificing code quality. Kafka and event streaming are **not added** because there is no genuine async boundary in this domain. Adding them would be complexity theater, not engineering maturity.
-
-*If the system grows to >5 bounded contexts or requires independent scaling of specific features, extract then — not before.*
-
----
-
-## Tech Stack
-
-| Layer       | Technology                          |
-|-------------|-------------------------------------|
-| Backend     | Spring Boot 3.5, Java 21            |
-| Database    | PostgreSQL 16                       |
-| Migrations  | Flyway                              |
-| Security    | Spring Security + JWT (httpOnly cookie / BFF pattern) |
-| Docs        | Springdoc OpenAPI / Swagger UI      |
-| Tests       | JUnit 5, Mockito                    |
-| CI/CD       | GitHub Actions                      |
-| Container   | Docker, Docker Compose              |
-
----
-
-## State Machine
-
-```
-PENDING ──→ CONFIRMED ──→ COMPLETED
-   │              │
-   └──→ CANCELLED └──→ CANCELLED
-                  │
-                  └──→ NO_SHOW
+```mermaid
+flowchart LR
+    Browser["Browser"] --> Next["Next.js :3003<br/>BFF route handlers"]
+    Next -->|"forwards HttpOnly cookie"| API["Spring Boot API :8084"]
+    API --> Sec["Origin check · JWT filter · RBAC"]
+    Sec --> Svc["AppointmentService<br/>state machine + doctor row lock"]
+    Svc --> PG[("PostgreSQL 16<br/>exclusion constraint")]
 ```
 
-- Only **ADMIN** and **DOCTOR** roles may trigger transitions
-- Backend returns `allowedTransitions` in every response — frontend uses this to enable/disable buttons (no hardcoding on the UI side)
-- Illegal transitions return `409 Conflict` with RFC 7807 ProblemDetail
+The browser only talks to the Next.js server, which proxies to the API. The JWT lives in an `HttpOnly`, `SameSite=Strict` cookie and never touches JavaScript, so there is no CORS setup and no token in `localStorage`.
 
----
+The backend is a deliberate monolith: one domain, one team, no need for distributed transactions or service discovery. Extract services only when independent scaling or more than a handful of bounded contexts justify it.
 
-## Roles & Permissions
+| Layer | Technology |
+|-------|-----------|
+| Backend | Java 21, Spring Boot 3.5, Spring Security, JPA, Flyway |
+| Database | PostgreSQL 16 (`btree_gist` exclusion constraint) |
+| Frontend | Next.js 15 (App Router), TypeScript, Tailwind CSS, TanStack Query/Table, React Hook Form + Zod |
+| Docs | Springdoc OpenAPI / Swagger UI |
+| Tests | JUnit 5, Mockito, Testcontainers (PostgreSQL) |
+| CI | GitHub Actions |
 
-| Endpoint                          | PATIENT | DOCTOR | ADMIN |
-|-----------------------------------|---------|--------|-------|
-| GET /api/appointments             | ✅      | ✅     | ✅    |
-| GET /api/appointments/search      | ✅      | ✅     | ✅    |
-| POST /api/appointments            | ✅      | ✅     | ✅    |
-| PUT /api/appointments/{id}        | ✅      | ✅     | ✅    |
-| PATCH /api/appointments/{id}/status | ❌    | ✅     | ✅    |
-| DELETE /api/appointments/{id}     | ❌      | ❌     | ✅    |
+## Run it locally
 
----
-
-## DSGVO / GDPR Note
-
-Patient appointment data qualifies as **health data under Art. 9 GDPR** (sensitive personal data).
-
-Measures implemented:
-- Passwords stored as BCrypt hashes (never plaintext)
-- JWT in httpOnly cookie — not accessible to JavaScript (XSS protection)
-- `.env` files excluded from version control via `.gitignore`
-
-In production, additionally consider: audit logging, data retention policies, right-to-erasure endpoint.
-
----
-
-## Getting Started
-
-### Prerequisites
-- Docker + Docker Compose
-- Java 21 (for local development without Docker)
-
-### Run with Docker Compose
+Requirements: Docker + Docker Compose.
 
 ```bash
-docker-compose up -d
+docker compose up --build
 ```
 
-API: `http://localhost:8084`
-Swagger UI: `http://localhost:8084/swagger-ui/index.html`
+| What | URL |
+|------|-----|
+| Frontend | http://localhost:3003 |
+| API | http://localhost:8084 |
+| Swagger UI | http://localhost:8084/swagger-ui/index.html |
 
-### Environment Variables
+### Your data survives restarts
 
-| Variable              | Default                         | Description              |
-|-----------------------|---------------------------------|--------------------------|
+Database data lives in a named Docker volume. `docker compose up -d` after a reboot or after `docker compose stop` / `down` brings everything back with all records intact; containers also restart automatically (`restart: unless-stopped`). The only command that deletes the data is `docker compose down -v` (or `docker volume rm`), so do not use `-v` unless you want a clean slate.
+
+Demo accounts (seeded by Flyway):
+
+| Username | Password | Role |
+|----------|----------|------|
+| `admin` | `admin123` | ROLE_ADMIN |
+| `dr.weber` | `doctor123` | ROLE_DOCTOR |
+| `mueller` | `patient123` | ROLE_PATIENT |
+
+Compose sets `APP_COOKIE_SECURE=false` because the demo runs on plain HTTP. The application default is `Secure=true`. Set `JWT_SECRET` (at least 32 characters) in your environment or `.env` for anything other than a local demo.
+
+### Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
 | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5437/clinic_db` | PostgreSQL URL |
-| `PGUSER`              | `postgres`                      | DB username              |
-| `PGPASSWORD`          | `postgres123`                   | DB password              |
-| `JWT_SECRET`          | *(change in production!)*       | Min 32 chars             |
-| `PORT`                | `8084`                          | Server port              |
+| `PGUSER` / `PGPASSWORD` | `postgres` / `postgres123` | DB credentials (local demo values) |
+| `JWT_SECRET` | none in production | min 32 characters |
+| `app.cookie.secure` | `true` | `Secure` flag of the auth cookie |
+| `app.cookie.same-site` | `Strict` | `SameSite` of the auth cookie |
+| `app.cors.allowed-origins` | `http://localhost:3000,3001,3003` | Origins accepted by the Origin check and CORS |
 
-### Default Users (seed data)
+## Double-booking protection
 
-| Username   | Password    | Role          |
-|------------|-------------|---------------|
-| admin      | admin123    | ROLE_ADMIN    |
-| dr.weber   | doctor123   | ROLE_DOCTOR   |
-| mueller    | patient123  | ROLE_PATIENT  |
+Two requests for the same doctor and time must not both succeed, even when they arrive in the same millisecond. Three layers:
 
----
+1. **Row lock**: the service loads the doctor with `SELECT ... FOR UPDATE` before checking for conflicts, so concurrent bookings for one doctor are serialized.
+2. **Conflict check** against existing active appointments (a 30-minute slot, half-open, so 10:00 and 10:30 do not collide) and suggestion of alternative free slots in the `409` response.
+3. **Database constraint** (migration V12) as the final guarantee, independent of application code:
 
-## API Overview
+```sql
+EXCLUDE USING gist (
+  doctor_id WITH =,
+  tsrange(appointment_time, appointment_time + INTERVAL '30 minutes') WITH &&
+) WHERE (doctor_id IS NOT NULL AND status NOT IN ('CANCELLED', 'NO_SHOW'))
+```
+
+Cancelled and no-show appointments free the slot. Lock waits are bounded (`lock_timeout`), and lock or constraint failures return `409`, not `500`.
+
+A Testcontainers test fires 12 simultaneous bookings at one slot and expects exactly one success. The same race was reproduced directly on PostgreSQL 16 with raw inserts: 1 accepted, 11 rejected by the constraint.
+
+## State machine
 
 ```
-POST   /api/auth/login
-POST   /api/auth/logout
+PENDING ──> CONFIRMED ──> COMPLETED
+   │            │
+   └─> CANCELLED └─> CANCELLED / NO_SHOW
+```
 
+Only ADMIN and DOCTOR can change status. Every response carries `allowedTransitions`, which the UI uses to enable buttons, and illegal transitions return `409` as RFC 7807 ProblemDetail.
+
+## Roles
+
+| Endpoint | PATIENT | DOCTOR | ADMIN |
+|----------|---------|--------|-------|
+| `GET /api/appointments`, `/search`, `/{id}` | yes | yes | yes |
+| `POST /api/appointments` | yes | yes | yes |
+| `PUT /api/appointments/{id}` | yes | yes | yes |
+| `PATCH /api/appointments/{id}/status` | no | yes | yes |
+| `DELETE /api/appointments/{id}` | no | no | yes |
+
+## Security model
+
+- Passwords are stored as BCrypt hashes.
+- **Auth cookie**: `HttpOnly`, `Secure` (default), `SameSite=Strict`.
+- **CSRF**: because the browser sends the cookie automatically, "stateless JWT" is not a reason to skip CSRF protection. The API checks `Origin` (then `Referer`) on state-changing requests against `app.cors.allowed-origins`, in addition to `SameSite=Strict` and JSON-only bodies. Requests with neither header (non-browser clients) are allowed, since CSRF is a browser attack.
+- Roles are enforced in the API on every request; UI hiding is only UX. Anonymous calls get `401`, a valid token with too weak a role gets `403`.
+- **Object-level access**: a role check alone would let any patient read or change other patients' appointments. `AppointmentAccessPolicy` limits ADMIN to everything, DOCTOR to their own schedule and PATIENT to their own bookings (list, search, read, update, status). A foreign id answers `404`, and a patient's booking always carries the patient's own login, whatever the request body says. `ApiAuthorizationTest` covers no token, forged token, wrong role and other people's data.
+
+### GDPR note
+
+Appointment data is health data (Art. 9 GDPR). Implemented: hashed passwords, cookie not readable by scripts, secrets kept out of version control. Not implemented: audit logging, retention policy, erasure endpoint; these are required before real patient data.
+
+## API overview
+
+```
+POST   /api/auth/login | /api/auth/logout
 GET    /api/appointments
 GET    /api/appointments/search?status=PENDING&doctorName=weber&page=0&size=10
 GET    /api/appointments/{id}
-POST   /api/appointments
+POST   /api/appointments        (body may carry doctorId or doctorName)
 PUT    /api/appointments/{id}
 PATCH  /api/appointments/{id}/status
 DELETE /api/appointments/{id}
 ```
 
----
+## Frontend
 
-## Running Tests
-
-```bash
-./mvnw test
-```
-
----
-
-## Deploy to Railway
-
-1. Push to GitHub
-2. Create new Railway project → "Deploy from GitHub repo"
-3. Add PostgreSQL plugin
-4. Set environment variables: `SPRING_DATASOURCE_URL`, `PGUSER`, `PGPASSWORD`, `JWT_SECRET`
-5. Railway auto-detects Dockerfile and builds on every push to `main`
-
----
-
-## Frontend (Next.js 15)
-
-| Feature | Details |
-|---|---|
-| Stack | Next.js 15 App Router, TypeScript, Tailwind CSS |
-| Auth | JWT via httpOnly cookie — BFF proxy pattern (no CORS, no localStorage) |
-| Role routing | `/admin` → Admin dashboard · `/doctor` → Doctor portal · `/patient` → Patient wizard |
-| State | TanStack Query v5 (optimistic updates) |
-| Forms | React Hook Form + Zod (field-level validation) |
-| Table | TanStack Table (sorting, filtering, pagination) |
-| UX | Ctrl+K command palette · skeleton loading · 409 conflict → alternative slots |
-| i18n | English / Deutsch / Türkçe |
-| a11y | WCAG 2.1 AA — aria-label, aria-live, keyboard navigation |
-| Theme | Dark / Light mode (next-themes) |
-
-### Run Frontend
+Role routing (`/admin`, `/doctor`, `/patient`), skeleton loading, `409` conflict handling with alternative slots, Ctrl+K command palette, English/German/Turkish, dark/light theme, keyboard-accessible controls.
 
 ```bash
 cd frontend/clinic-app
-npm install
-npm run dev        # http://localhost:3000
+npm ci && npm run dev    # http://localhost:3000, needs the API on :8084
 ```
 
-Or with Docker Compose (recommended — runs backend + frontend + DB together):
+## Tests
 
 ```bash
-docker compose up -d
+./mvnw verify
 ```
 
-Frontend: `http://localhost:3000`
+Unit tests (Mockito) cover the service and state machine. Integration tests run on a real PostgreSQL via Testcontainers (no H2) and need Docker; they are skipped automatically without it.
 
----
+## Known limitations
 
-## Testing Strategy
+- Seed users and appointments live in the regular Flyway migrations. A production deployment would move them to a separate demo location, as done in the WMS project.
+- Appointment slots are fixed at 30 minutes.
+- The Java build and the compose stack require Maven Central and Docker Hub access.
 
-```
-Unit tests      → JUnit 5 + Mockito  (AppointmentService, state machine logic)
-Integration     → Testcontainers + real PostgreSQL 16-alpine (no H2 mocks)
-CI              → GitHub Actions (build → test → Docker build on main)
-```
+## License
 
-Testcontainers spins up a real PostgreSQL container per test run — no mocked database, no false confidence from H2 dialect differences.
-
----
-
-## Architecture Diagram
-
-```
-Browser
-  │
-  ▼
-Next.js (port 3000)          ← BFF layer
-  │  Route Handlers (/api/*)
-  │  Reads httpOnly cookie
-  │  Forwards to backend
-  ▼
-Spring Boot (port 8084)
-  │  Spring Security (JWT filter)
-  │  @PreAuthorize (ADMIN/DOCTOR/PATIENT)
-  │  Service layer (state machine, conflict detection)
-  ▼
-PostgreSQL 16 (port 5437)
-  │  Flyway migrations (V1–V11)
-  │  appointment + app_user tables
-```
-
-No direct browser → backend calls. All requests go through Next.js Route Handlers, which attach the cookie automatically. This eliminates CORS and keeps the JWT off the client.
+MIT
