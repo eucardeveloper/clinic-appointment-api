@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres123
     ports:
-      - "5437:5432"
+      - "127.0.0.1:5437:5432"
     volumes:
       - clinic-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -31,7 +31,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://clinic-database:5432/clinic_db
       PGUSER: postgres
       PGPASSWORD: postgres123
-      JWT_SECRET: clinic-api-secret-key-change-in-production-min32chars
+      JWT_SECRET: ${JWT_SECRET:-clinic-api-secret-key-change-in-production-min32chars}
       # Plain-HTTP localhost demo only. The application default is Secure=true (HTTPS); never set false in production.
       APP_COOKIE_SECURE: "false"
 
