@@ -95,8 +95,8 @@ class ApiAuthorizationTest {
     @Test
     @DisplayName("PATIENT cannot use admin/doctor operations: 403")
     void patientIsForbiddenFromPrivilegedRoutes() throws Exception {
-        Cookie patient = login("patient1", "patient123");
-        Long own = appointmentOf("patient1");
+        Cookie patient = login("ahmet.yilmaz", "patient123");
+        Long own = appointmentOf("ahmet.yilmaz");
         mvc.perform(delete("/api/appointments/" + own).cookie(patient)).andExpect(status().isForbidden());
         mvc.perform(request("PATCH", "/api/appointments/" + own + "/status").cookie(patient)).andExpect(status().isForbidden());
         mvc.perform(get("/api/admin/users").cookie(patient)).andExpect(status().isForbidden());
@@ -107,8 +107,8 @@ class ApiAuthorizationTest {
     @Test
     @DisplayName("PATIENT only sees and changes their own appointments; others look like 404")
     void patientIsLimitedToOwnData() throws Exception {
-        Cookie patient1 = login("patient1", "patient123");
-        Long others = appointmentOf("patient2");
+        Cookie patient1 = login("ahmet.yilmaz", "patient123");
+        Long others = appointmentOf("fatma.kaya");
 
         mvc.perform(get("/api/appointments/" + others).cookie(patient1)).andExpect(status().isNotFound());
         mvc.perform(request("PUT", "/api/appointments/" + others).cookie(patient1)
@@ -120,23 +120,23 @@ class ApiAuthorizationTest {
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         JsonNode content = json.readTree(search).get("content");
         assertThat(content.size()).isPositive();
-        content.forEach(n -> assertThat(n.get("patientUsername").asText()).isEqualTo("patient1"));
+        content.forEach(n -> assertThat(n.get("patientUsername").asText()).isEqualTo("ahmet.yilmaz"));
 
         String list = mvc.perform(get("/api/appointments").cookie(patient1))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        json.readTree(list).forEach(n -> assertThat(n.get("patientUsername").asText()).isEqualTo("patient1"));
+        json.readTree(list).forEach(n -> assertThat(n.get("patientUsername").asText()).isEqualTo("ahmet.yilmaz"));
     }
 
     @Test
     @DisplayName("PATIENT cannot book in someone else's name: the login wins over the body")
     void patientCannotSpoofPatientUsername() throws Exception {
-        Cookie patient1 = login("patient1", "patient123");
+        Cookie patient1 = login("ahmet.yilmaz", "patient123");
         String body = mvc.perform(post("/api/appointments").cookie(patient1).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"patientName\":\"Ahmet Yilmaz\",\"patientUsername\":\"patient2\","
+                        .content("{\"patientName\":\"Ahmet Yilmaz\",\"patientUsername\":\"fatma.kaya\","
                                 + "\"doctorName\":\"Dr. James Wilson\",\"appointmentTime\":\"2031-02-03T11:00:00\","
                                 + "\"department\":\"Cardiology\"}"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        assertThat(json.readTree(body).get("patientUsername").asText()).isEqualTo("patient1");
+        assertThat(json.readTree(body).get("patientUsername").asText()).isEqualTo("ahmet.yilmaz");
     }
 
     @Test

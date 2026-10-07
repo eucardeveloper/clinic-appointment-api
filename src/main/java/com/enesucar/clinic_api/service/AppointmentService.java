@@ -12,6 +12,7 @@ import com.enesucar.clinic_api.exception.AppointmentNotFoundException;
 import com.enesucar.clinic_api.exception.DoctorNotFoundException;
 import com.enesucar.clinic_api.exception.InvalidStatusTransitionException;
 import com.enesucar.clinic_api.repository.AppointmentRepository;
+import com.enesucar.clinic_api.repository.AppointmentSpecs;
 import com.enesucar.clinic_api.repository.DoctorRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -93,9 +94,9 @@ public class AppointmentService {
                 .anyMatch(a -> role.equals(a.getAuthority()));
     }
 
-    /** Lower-cased, escaped LIKE pattern for the doctor-name filter; blank/null matches every name. */
+    /** Lower-cased, escaped LIKE pattern for the doctor-name filter; blank/null means no filter (null). */
     static String likePattern(String input) {
-        if (input == null || input.isBlank()) return "%";
+        if (input == null || input.isBlank()) return null;
         String escaped = input.trim().toLowerCase(java.util.Locale.ROOT)
                 .replace("!", "!!").replace("%", "!%").replace("_", "!_");
         return "%" + escaped + "%";
@@ -113,7 +114,7 @@ public class AppointmentService {
             Pageable pageable) {
 
         Page<AppointmentResponse> page = appointmentRepository
-                .findFiltered(status, likePattern(doctorName), from, to, pageable)
+                .findAll(AppointmentSpecs.filtered(status, likePattern(doctorName), from, to, null, null), pageable)
                 .map(this::toResponse);
 
         return new PagedResponse<>(page);
@@ -130,7 +131,7 @@ public class AppointmentService {
             Pageable pageable) {
 
         Page<AppointmentResponse> page = appointmentRepository
-                .findFilteredScoped(status, likePattern(doctorName), from, to, patientUsername, doctorId, pageable)
+                .findAll(AppointmentSpecs.filtered(status, likePattern(doctorName), from, to, patientUsername, doctorId), pageable)
                 .map(this::toResponse);
 
         return new PagedResponse<>(page);

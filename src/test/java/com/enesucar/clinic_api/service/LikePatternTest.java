@@ -9,10 +9,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class LikePatternTest {
 
     @Test
-    @DisplayName("blank or missing input matches every name")
+    @DisplayName("blank or missing input means no filter")
     void blankMatchesAll() {
-        assertThat(AppointmentService.likePattern(null)).isEqualTo("%");
-        assertThat(AppointmentService.likePattern("   ")).isEqualTo("%");
+        assertThat(AppointmentService.likePattern(null)).isNull();
+        assertThat(AppointmentService.likePattern("   ")).isNull();
     }
 
     @Test

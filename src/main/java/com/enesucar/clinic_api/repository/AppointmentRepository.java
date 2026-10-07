@@ -2,9 +2,8 @@ package com.enesucar.clinic_api.repository;
 
 import com.enesucar.clinic_api.entity.Appointment;
 import com.enesucar.clinic_api.entity.AppointmentStatus;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,7 +13,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
-public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
+public interface AppointmentRepository extends JpaRepository<Appointment, Long>, JpaSpecificationExecutor<Appointment> {
 
     /**
      * Finds appointments of the same doctor whose 30-minute slot overlaps the requested one:
@@ -55,51 +54,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("doctorId") Long doctorId,
             @Param("ignoredStatuses") List<AppointmentStatus> ignoredStatuses,
             @Param("after") LocalDateTime after
-    );
-
-    /**
-     * Filtered + paginated appointment list.
-     * Status/from/to are optional (null = ignored). doctorPattern is a lower-cased LIKE pattern
-     * built by AppointmentService.likePattern ("%" matches everything): PostgreSQL cannot infer the
-     * type of a null bound inside CONCAT/LOWER, so the null check lives in Java, not in the query.
-     */
-    @Query("""
-            SELECT a FROM Appointment a
-            WHERE (:status IS NULL OR a.status = :status)
-              AND LOWER(a.doctorName) LIKE :doctorPattern ESCAPE '!'
-              AND (:from IS NULL OR a.appointmentTime >= :from)
-              AND (:to IS NULL OR a.appointmentTime <= :to)
-            """)
-    Page<Appointment> findFiltered(
-            @Param("status") AppointmentStatus status,
-            @Param("doctorPattern") String doctorPattern,
-            @Param("from") LocalDateTime from,
-            @Param("to") LocalDateTime to,
-            Pageable pageable
-    );
-
-    /**
-     * Same filters as findFiltered plus an owner scope for non-admin callers:
-     * patientUsername restricts to one patient's appointments, doctorId to one doctor's.
-     * Both null means unscoped (ADMIN).
-     */
-    @Query("""
-            SELECT a FROM Appointment a
-            WHERE (:status IS NULL OR a.status = :status)
-              AND LOWER(a.doctorName) LIKE :doctorPattern ESCAPE '!'
-              AND (:from IS NULL OR a.appointmentTime >= :from)
-              AND (:to IS NULL OR a.appointmentTime <= :to)
-              AND (:patientUsername IS NULL OR a.patientUsername = :patientUsername)
-              AND (:doctorId IS NULL OR a.doctorId = :doctorId)
-            """)
-    Page<Appointment> findFilteredScoped(
-            @Param("status") AppointmentStatus status,
-            @Param("doctorPattern") String doctorPattern,
-            @Param("from") LocalDateTime from,
-            @Param("to") LocalDateTime to,
-            @Param("patientUsername") String patientUsername,
-            @Param("doctorId") Long doctorId,
-            Pageable pageable
     );
 
     /**
