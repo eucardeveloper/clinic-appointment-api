@@ -75,6 +75,14 @@ public class SecurityConfig {
                 // Read: authenticated users
                 .requestMatchers(HttpMethod.GET, "/api/appointments/**").authenticated()
 
+                // Master data: anyone signed in may read doctors/departments, only ADMIN may change them.
+                // Enforced here as well as with @PreAuthorize so the 403 comes before the request body is
+                // parsed or validated (a forbidden caller must not learn about validation rules).
+                .requestMatchers(HttpMethod.POST, "/api/doctors/**", "/api/departments/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/doctors/**", "/api/departments/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/api/doctors/**", "/api/departments/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/doctors/**", "/api/departments/**").hasRole("ADMIN")
+
                 // Admin user management
                 .requestMatchers("/api/admin/users/**").hasRole("ADMIN")
 
