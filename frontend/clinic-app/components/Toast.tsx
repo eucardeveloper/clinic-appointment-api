@@ -10,7 +10,6 @@
 
 import { createContext, useContext, useState, useCallback, useRef } from 'react'
 import { CheckCircle, AlertTriangle, XCircle, Info, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 type ToastType = 'success' | 'warning' | 'error' | 'info'
 

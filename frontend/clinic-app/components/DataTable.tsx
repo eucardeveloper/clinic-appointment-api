@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import {
   ChevronUp, ChevronDown, ChevronsUpDown,
-  Inbox, AlertTriangle, RefreshCw, Search, X
+  Inbox, AlertTriangle, RefreshCw, Search
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/lib/i18n-context'

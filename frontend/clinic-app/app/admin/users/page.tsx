@@ -8,7 +8,7 @@ import { UserPlus, Trash2, Shield, Stethoscope, User, Search, Eye, EyeOff } from
 import AppShell from '@/components/AppShell'
 import { useI18n } from '@/lib/i18n-context'
 import { Skeleton } from '@/components/ui/skeleton'
-import { getUsers, createUser, deleteUser, type UserResponse, type CreateUserRequest } from '@/lib/api'
+import { getUsers, createUser, deleteUser, type CreateUserRequest } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
 const ROLE_COLORS: Record<string, string> = {

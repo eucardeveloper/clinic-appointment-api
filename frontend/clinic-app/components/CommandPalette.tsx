@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import {
   Search, Calendar, Plus, Stethoscope, ChevronRight,
-  LayoutDashboard, Settings, HelpCircle,
+  LayoutDashboard,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
 import { cn } from '@/lib/utils'

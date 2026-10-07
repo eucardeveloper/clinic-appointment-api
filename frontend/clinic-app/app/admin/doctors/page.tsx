@@ -151,7 +151,7 @@ export default function DoctorsPage() {
   const createDoctorMut = useMutation({
     mutationFn: createDoctor,
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['doctors'] }); setShowDoctorModal(false); toast.success('Doktor eklendi') },
-    onError: (err: any) => toast.error(err?.message ?? 'Bu email zaten kayıtlı'),
+    onError: (err: Error) => toast.error(err?.message ?? 'Bu email zaten kayıtlı'),
   })
 
   const updateDoctorMut = useMutation({

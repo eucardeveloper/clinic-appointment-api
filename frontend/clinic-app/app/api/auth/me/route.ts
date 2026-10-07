@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
 const BACKEND = process.env.API_URL || 'http://localhost:8084'
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const cookieStore = await cookies()
   const authToken = cookieStore.get('access_token')
 

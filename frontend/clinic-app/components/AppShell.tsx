@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Stethoscope,
   Bell, HelpCircle, Search, ChevronLeft, ChevronRight,
   Menu, X, AlertTriangle, Plus, LogOut, Globe,
-  CalendarDays, ClipboardList, Users, UserCog, Clock
+  CalendarDays, ClipboardList, Users, Clock
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/lib/i18n-context'
@@ -32,7 +32,6 @@ interface NavItem {
 export default function AppShell({ children, title, subtitle, onNewAppointment }: Props) {
   const { t, lang, setLang } = useI18n()
   const { user, setUser } = useAuth()
-  const router = useRouter()
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -56,7 +55,7 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [langOpen])
+  }, [langOpen, userMenuOpen])
 
   // Keyboard shortcut ⌘K / Ctrl+K
   useEffect(() => {
@@ -140,7 +139,7 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
 
         {/* Logout */}
         <button
-          onClick={async () => { try { await fetch("/api/auth/logout", { method: "POST", credentials: "include" }) } catch(_) {} setUser(null); window.location.replace('/login') }}
+          onClick={async () => { try { await fetch("/api/auth/logout", { method: "POST", credentials: "include" }) } catch { /* ignore */ } setUser(null); window.location.replace('/login') }}
           className={cn(
             'w-full flex items-center gap-2 px-3 py-2 rounded-[var(--radius-md)] text-sm text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--surface-3))] hover:text-[hsl(var(--foreground))] transition-colors',
             collapsed && 'justify-center px-0 w-10 mx-auto'
@@ -383,7 +382,7 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
                   <p className="text-[10px] text-[hsl(var(--muted-foreground))] capitalize">{user?.role?.toLowerCase()}</p>
                 </div>
                 <button
-                  onClick={async () => { setUserMenuOpen(false); try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }) } catch(_) {} setUser(null); window.location.replace('/login') }}
+                  onClick={async () => { setUserMenuOpen(false); try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }) } catch { /* ignore */ } setUser(null); window.location.replace('/login') }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--surface-3))] transition-colors"
                 >
                   <LogOut size={14} />

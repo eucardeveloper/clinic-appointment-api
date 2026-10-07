@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   useReactTable, getCoreRowModel, getSortedRowModel,
   getFilteredRowModel, getPaginationRowModel,
-  type ColumnDef, type SortingState, flexRender,
+  type ColumnDef, type Column, type SortingState, flexRender,
 } from '@tanstack/react-table'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -133,7 +133,7 @@ export default function AdminDashboard() {
       setConflictSlots([])
       reset()
     },
-    onError: (err: any) => {
+    onError: (err: Error & { alternativeSlots?: string[] }) => {
       if (err?.alternativeSlots) setConflictSlots(err.alternativeSlots)
     },
   })
@@ -148,7 +148,7 @@ export default function AdminDashboard() {
     const id = selectedId
     setTlLoading(true)
     try { await transitionMut.mutateAsync({ id, status }) }
-    catch (_) {}
+    catch { /* ignore */ }
     finally { setTlLoading(false) }
   }
 
@@ -362,7 +362,7 @@ export default function AdminDashboard() {
               />
               <select
                 value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value as any)}
+                onChange={e => setStatusFilter(e.target.value as AppointmentStatus | '')}
                 className="rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="">{t.allStatuses}</option>
@@ -395,12 +395,11 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  const todayStr = new Date().toDateString()
                   setStatusFilter('')
                   setGlobalFilter('')
                   // Filter via table global filter trick — we just tag a today-only filter via status='TODAY' sentinel
                   // Actually let's filter the data differently
-                  setStatusFilter('__today__' as any)
+                  setStatusFilter('__today__')
                 }}
                 className={cn(
                   'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
@@ -676,7 +675,7 @@ export default function AdminDashboard() {
 
               {createMut.isError && conflictSlots.length === 0 && (
                 <p className="text-xs text-red-500">
-                  {(createMut.error as any)?.detail ?? t.errorCreating}
+                  {(createMut.error as (Error & { detail?: string }) | null)?.detail ?? t.errorCreating}
                 </p>
               )}
 
@@ -838,7 +837,7 @@ function FormField({ label, error, children }: { label: string; error?: string; 
   )
 }
 
-function SortHeader({ label, column }: { label: string; column: any }) {
+function SortHeader({ label, column }: { label: string; column: Column<Appointment, unknown> }) {
   const sorted = column.getIsSorted()
   return (
     <button

@@ -87,7 +87,7 @@ function DoctorDashboardInner() {
     const id = selectedId
     setTlLoading(true)
     try { await transitionMut.mutateAsync({ id, status }) }
-    catch (_) { /* handled in onError */ }
+    catch { /* handled in onError */ }
     finally { setTlLoading(false) }
   }
 

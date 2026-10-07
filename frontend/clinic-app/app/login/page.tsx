@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Calendar, Moon, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { login } from '@/lib/api'
-import { useAuth } from '@/lib/auth-context'
+import { useAuth, type UserRole } from '@/lib/auth-context'
 import { useI18n } from '@/lib/i18n-context'
 import { LANGUAGE_LABELS, type Language } from '@/lib/i18n'
 
@@ -28,7 +28,7 @@ export default function LoginPage() {
     setError('')
     try {
       const res = await login({ username, password })
-      setUser({ username: res.username, role: res.role as any })
+      setUser({ username: res.username, role: res.role as UserRole })
       router.push('/')
     } catch {
       setError(t.loginError)

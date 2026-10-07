@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
 const BACKEND = process.env.API_URL || 'http://localhost:8084'
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   const cookieStore = await cookies()
   const authToken = cookieStore.get('access_token')
 
-  const backendRes = await fetch(`${BACKEND}/api/auth/logout`, {
+  await fetch(`${BACKEND}/api/auth/logout`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from 'react'
 import {
-  X, CheckCircle, RotateCcw, Ban, Pencil, FileText,
-  Clock, User, Stethoscope, Building2, Calendar, MessageSquare
+  X, CheckCircle, RotateCcw, Ban, Pencil,
+  Clock, Stethoscope, Building2, Calendar, MessageSquare
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/lib/i18n-context'

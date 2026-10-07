@@ -89,7 +89,7 @@ function PatientDashboardInner() {
       setShowWizard(false); setStep('department'); setConflictSlots([])
       setForm(f => ({ ...f, doctorName: '', appointmentTime: '', department: '' }))
     },
-    onError: (err: any) => {
+    onError: (err: Error & { alternativeSlots?: string[] }) => {
       if (err?.alternativeSlots) setConflictSlots(err.alternativeSlots)
     },
   })
