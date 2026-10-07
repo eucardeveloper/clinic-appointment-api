@@ -61,7 +61,7 @@ class ApiAuthorizationTest {
     };
 
     private MockHttpServletRequestBuilder request(String method, String path) {
-        return request(HttpMethod.valueOf(method), path).contentType(MediaType.APPLICATION_JSON).content("{}");
+        return org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request(HttpMethod.valueOf(method), path).contentType(MediaType.APPLICATION_JSON).content("{}");
     }
 
     private Cookie login(String username, String password) throws Exception {
