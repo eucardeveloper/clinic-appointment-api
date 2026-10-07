@@ -93,6 +93,14 @@ public class AppointmentService {
                 .anyMatch(a -> role.equals(a.getAuthority()));
     }
 
+    /** Lower-cased, escaped LIKE pattern for the doctor-name filter; blank/null matches every name. */
+    static String likePattern(String input) {
+        if (input == null || input.isBlank()) return "%";
+        String escaped = input.trim().toLowerCase(java.util.Locale.ROOT)
+                .replace("!", "!!").replace("%", "!%").replace("_", "!_");
+        return "%" + escaped + "%";
+    }
+
     /**
      * Filtered + paginated list.
      * All filter params are optional — pass null to ignore.
@@ -105,7 +113,7 @@ public class AppointmentService {
             Pageable pageable) {
 
         Page<AppointmentResponse> page = appointmentRepository
-                .findFiltered(status, doctorName, from, to, pageable)
+                .findFiltered(status, likePattern(doctorName), from, to, pageable)
                 .map(this::toResponse);
 
         return new PagedResponse<>(page);
@@ -122,7 +130,7 @@ public class AppointmentService {
             Pageable pageable) {
 
         Page<AppointmentResponse> page = appointmentRepository
-                .findFilteredScoped(status, doctorName, from, to, patientUsername, doctorId, pageable)
+                .findFilteredScoped(status, likePattern(doctorName), from, to, patientUsername, doctorId, pageable)
                 .map(this::toResponse);
 
         return new PagedResponse<>(page);

@@ -59,18 +59,20 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     /**
      * Filtered + paginated appointment list.
-     * All parameters are optional — null values are ignored in the WHERE clause.
+     * Status/from/to are optional (null = ignored). doctorPattern is a lower-cased LIKE pattern
+     * built by AppointmentService.likePattern ("%" matches everything): PostgreSQL cannot infer the
+     * type of a null bound inside CONCAT/LOWER, so the null check lives in Java, not in the query.
      */
     @Query("""
             SELECT a FROM Appointment a
             WHERE (:status IS NULL OR a.status = :status)
-              AND (:doctorName IS NULL OR LOWER(a.doctorName) LIKE LOWER(CONCAT('%', :doctorName, '%')))
+              AND LOWER(a.doctorName) LIKE :doctorPattern ESCAPE '!'
               AND (:from IS NULL OR a.appointmentTime >= :from)
               AND (:to IS NULL OR a.appointmentTime <= :to)
             """)
     Page<Appointment> findFiltered(
             @Param("status") AppointmentStatus status,
-            @Param("doctorName") String doctorName,
+            @Param("doctorPattern") String doctorPattern,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to,
             Pageable pageable
@@ -84,7 +86,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     @Query("""
             SELECT a FROM Appointment a
             WHERE (:status IS NULL OR a.status = :status)
-              AND (:doctorName IS NULL OR LOWER(a.doctorName) LIKE LOWER(CONCAT('%', :doctorName, '%')))
+              AND LOWER(a.doctorName) LIKE :doctorPattern ESCAPE '!'
               AND (:from IS NULL OR a.appointmentTime >= :from)
               AND (:to IS NULL OR a.appointmentTime <= :to)
               AND (:patientUsername IS NULL OR a.patientUsername = :patientUsername)
@@ -92,7 +94,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             """)
     Page<Appointment> findFilteredScoped(
             @Param("status") AppointmentStatus status,
-            @Param("doctorName") String doctorName,
+            @Param("doctorPattern") String doctorPattern,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to,
             @Param("patientUsername") String patientUsername,
