@@ -1,5 +1,7 @@
 # Clinic Appointment System
 
+[![CI](https://github.com/eucardeveloper/clinic-appointment-api/actions/workflows/ci.yml/badge.svg)](https://github.com/eucardeveloper/clinic-appointment-api/actions/workflows/ci.yml) [![Frontend](https://github.com/eucardeveloper/clinic-appointment-api/actions/workflows/frontend.yml/badge.svg)](https://github.com/eucardeveloper/clinic-appointment-api/actions/workflows/frontend.yml)
+
 Appointment booking for a clinic: patients book, doctors confirm and complete, admins manage. Spring Boot REST API on PostgreSQL with a Next.js frontend, role-based dashboards, and database-enforced protection against double-booking a doctor.
 
 ## Architecture
