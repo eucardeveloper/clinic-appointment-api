@@ -108,8 +108,10 @@ function Modal({ title, onClose, children }: {
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="field-label">{label}</label>
-      {children}
+      <label className="block">
+        <span className="field-label">{label}</span>
+        {children}
+      </label>
       {error && <p role="alert" className="field-error">{error}</p>}
     </div>
   )
@@ -270,9 +272,6 @@ export default function DoctorsPage() {
   )
 
   const activeDoctorCount = doctors.filter(d => d.active).length
-
-  // ── Field classes ─────────────────────────────────────────────────────────
-  const inputCls = 'field-input'
 
   const addLabel = tab === 'doctors' ? t.addDoctor : t.addDepartment
   const closeAddDoctor = () => { setShowDoctorModal(false); doctorForm.reset() }

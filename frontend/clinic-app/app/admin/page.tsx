@@ -833,8 +833,10 @@ function KpiCard({ icon, label, value, onClick, active }: {
 function FormField({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="field-label">{label}</label>
-      {children}
+      <label className="block">
+        <span className="field-label">{label}</span>
+        {children}
+      </label>
       {error && <p className="field-error" role="alert">{error}</p>}
     </div>
   )
