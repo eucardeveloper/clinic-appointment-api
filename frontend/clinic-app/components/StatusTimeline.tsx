@@ -58,9 +58,9 @@ export function StatusTimeline({ current, allowedTransitions, onTransition, load
                   <div
                     className={cn(
                       'flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors',
-                      done   && 'border-green-500 bg-green-500 text-white',
-                      active && 'border-blue-500 bg-blue-500 text-white',
-                      future && 'border-gray-300 bg-white text-gray-400 dark:border-gray-600 dark:bg-gray-800',
+                      done   && 'border-green-600 bg-green-600 text-white',
+                      active && 'border-blue-600 bg-blue-600 text-white',
+                      future && 'border-slate-300 bg-white text-slate-400',
                     )}
                     aria-label={`${stepLabel}: ${done ? 'completed' : active ? 'current' : 'upcoming'}`}
                   >
@@ -68,16 +68,16 @@ export function StatusTimeline({ current, allowedTransitions, onTransition, load
                   </div>
                   <span className={cn(
                     'mt-1 text-xs whitespace-nowrap',
-                    active && 'font-semibold text-blue-600 dark:text-blue-400',
-                    done   && 'text-green-600 dark:text-green-400',
-                    future && 'text-gray-400',
+                    active && 'font-semibold text-blue-700',
+                    done   && 'text-green-700',
+                    future && 'text-slate-400',
                   )}>
                     {stepLabel}
                   </span>
                 </div>
                 {i < TIMELINE_STEPS.length - 1 && (
                   <div
-                    className={cn('flex-1 h-0.5 mx-2 mt-[-16px]', done ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700')}
+                    className={cn('flex-1 h-0.5 mx-2 mt-[-16px]', done ? 'bg-green-600' : 'bg-slate-200')}
                     aria-hidden="true"
                   />
                 )}
@@ -94,8 +94,8 @@ export function StatusTimeline({ current, allowedTransitions, onTransition, load
           aria-live="polite"
           className={cn(
             'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium',
-            isCancelled && 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-            isNoShow    && 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+            isCancelled && 'bg-red-50 border border-red-200 text-red-700',
+            isNoShow    && 'bg-slate-100 border border-slate-200 text-slate-600',
           )}>
           {STEP_ICONS[current]}
           {labels.statusLabels[current]}
@@ -114,7 +114,7 @@ export function StatusTimeline({ current, allowedTransitions, onTransition, load
               onClick={() => onTransition('CONFIRMED')}
               disabled={loading}
               aria-label="Confirm appointment"
-              className="rounded-md bg-blue-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-50 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+              className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
             >
               {labels.confirm}
             </button>
@@ -124,7 +124,7 @@ export function StatusTimeline({ current, allowedTransitions, onTransition, load
               onClick={() => onTransition('COMPLETED')}
               disabled={loading}
               aria-label="Mark appointment as completed"
-              className="rounded-md bg-green-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-600 disabled:opacity-50 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500"
+              className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
             >
               {labels.complete}
             </button>
@@ -134,7 +134,7 @@ export function StatusTimeline({ current, allowedTransitions, onTransition, load
               onClick={() => onTransition('NO_SHOW')}
               disabled={loading}
               aria-label="Mark appointment as no-show"
-              className="rounded-md bg-gray-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-600 disabled:opacity-50 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500"
+              className="rounded-md bg-slate-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
             >
               {labels.markNoShow}
             </button>
@@ -144,7 +144,7 @@ export function StatusTimeline({ current, allowedTransitions, onTransition, load
               onClick={() => onTransition('CANCELLED')}
               disabled={loading}
               aria-label="Cancel appointment"
-              className="rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+              className="rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 bg-white hover:bg-red-50 disabled:opacity-50 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
             >
               {labels.cancel}
             </button>

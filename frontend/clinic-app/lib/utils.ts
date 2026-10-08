@@ -31,12 +31,27 @@ export const STATUS_LABELS: Record<AppointmentStatus, string> = {
 }
 
 export const STATUS_COLORS: Record<AppointmentStatus, string> = {
-  PENDING:   'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
-  CONFIRMED: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-  COMPLETED: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-  CANCELLED: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-  NO_SHOW:   'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  PENDING:   'bg-amber-50 text-amber-700 border border-amber-200',
+  CONFIRMED: 'bg-blue-50 text-blue-700 border border-blue-200',
+  COMPLETED: 'bg-green-50 text-green-700 border border-green-200',
+  CANCELLED: 'bg-red-50 text-red-700 border border-red-200',
+  NO_SHOW:   'bg-slate-100 text-slate-600 border border-slate-200',
 }
+
+/** Extract a human-readable message from API errors (plain {title, detail} objects) or Error instances. */
+export function errorMessage(err: unknown, fallback: string): string {
+  if (!err) return fallback
+  if (typeof err === 'string') return err
+  const e = err as { detail?: unknown; message?: unknown; title?: unknown }
+  if (typeof e.detail === 'string' && e.detail) return e.detail
+  if (typeof e.message === 'string' && e.message) return e.message
+  if (typeof e.title === 'string' && e.title) return e.title
+  return fallback
+}
+
+/** Phone: 5-20 chars of digits, space, ( ) - and an optional leading + */
+export const PHONE_REGEX = /^\+?[0-9 ()-]{5,20}$/
+export const PHONE_MESSAGE = 'Phone must be 5-20 characters: digits, spaces, ( ) - (optional leading +)'
 
 export const DEPARTMENTS = [
   'Cardiology', 'Neurology', 'Orthopedics', 'Dermatology',

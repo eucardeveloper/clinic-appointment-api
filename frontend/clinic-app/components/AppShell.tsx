@@ -93,16 +93,16 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className={cn(
-        'flex items-center gap-3 px-4 py-5 border-b border-[hsl(var(--border))]',
+        'flex items-center gap-3 px-4 h-14 flex-shrink-0 border-b border-white/10',
         collapsed && 'justify-center px-0'
       )}>
         <div className="w-8 h-8 rounded-[var(--radius-md)] bg-[hsl(var(--primary))] flex items-center justify-center flex-shrink-0">
-          <span className="text-[hsl(var(--primary-foreground))] font-bold text-sm">L</span>
+          <CalendarDays size={16} className="text-white" aria-hidden />
         </div>
         {!collapsed && (
           <div className="min-w-0">
-            <p className="font-semibold text-[hsl(var(--foreground))] text-sm truncate">{t.appName}</p>
-            <p className="text-[hsl(var(--subtle-foreground))] text-xs truncate">{t.appSubtitle}</p>
+            <p className="font-semibold text-white text-sm truncate">{t.appName}</p>
+            <p className="text-slate-400 text-xs truncate">{t.appSubtitle}</p>
           </div>
         )}
       </div>
@@ -118,10 +118,10 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
               href={item.href}
               className={cn(
                 'flex items-center gap-3 px-3 py-2 rounded-[var(--radius-md)] text-sm transition-colors duration-120',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
                 active
-                  ? 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] font-medium'
-                  : 'text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--surface-3))] hover:text-[hsl(var(--foreground))]',
+                  ? 'bg-[hsl(var(--primary))] text-white font-medium'
+                  : 'text-slate-300 hover:bg-white/10 hover:text-white',
                 collapsed && 'justify-center px-0 w-10 mx-auto'
               )}
               title={collapsed ? item.label : undefined}
@@ -141,7 +141,7 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
         <button
           onClick={async () => { try { await fetch("/api/auth/logout", { method: "POST", credentials: "include" }) } catch { /* ignore */ } setUser(null); window.location.replace('/login') }}
           className={cn(
-            'w-full flex items-center gap-2 px-3 py-2 rounded-[var(--radius-md)] text-sm text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--surface-3))] hover:text-[hsl(var(--foreground))] transition-colors',
+            'w-full flex items-center gap-2 px-3 py-2 rounded-[var(--radius-md)] text-sm text-slate-300 hover:bg-white/10 hover:text-white transition-colors',
             collapsed && 'justify-center px-0 w-10 mx-auto'
           )}
           title={collapsed ? t.logout : undefined}
@@ -153,7 +153,7 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
         {/* Collapse toggle — always visible */}
         <button
           onClick={() => setCollapsed(v => !v)}
-          className="w-full flex items-center justify-center py-2 rounded-[var(--radius-md)] text-[hsl(var(--subtle-foreground))] hover:bg-[hsl(var(--surface-3))] hover:text-[hsl(var(--muted-foreground))] transition-colors"
+          className="w-full flex items-center justify-center py-2 rounded-[var(--radius-md)] text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
           aria-label={collapsed ? t.navExpand : t.navCollapse}
           title={collapsed ? t.navExpand : t.navCollapse}
         >
@@ -169,7 +169,7 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
       {/* ── Desktop sidebar ───────────────────────────────────────── */}
       <aside
         className={cn(
-          'hidden md:flex flex-col flex-shrink-0 border-r border-[hsl(var(--border))] bg-gradient-to-b from-[hsl(226_35%_14%)] to-[hsl(220_25%_10%)] border-r border-[hsl(226_20%_20%)] transition-all duration-200',
+          'hidden md:flex flex-col flex-shrink-0 bg-sidebar transition-all duration-200',
           collapsed ? 'w-[60px]' : 'w-56'
         )}
       >
@@ -180,14 +180,14 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-40 flex">
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-900/50"
             onClick={() => setMobileOpen(false)}
             aria-hidden
           />
-          <aside className="relative w-56 flex-shrink-0 bg-[hsl(var(--surface-1))] flex flex-col z-50 border-r border-[hsl(var(--border))]">
+          <aside className="relative w-56 flex-shrink-0 bg-sidebar flex flex-col z-50">
             <button
               onClick={() => setMobileOpen(false)}
-              className="absolute top-4 right-4 p-1 rounded text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+              className="absolute top-4 right-4 p-1 rounded text-slate-300 hover:text-white"
               aria-label="Close"
             >
               <X size={18} />
@@ -199,8 +199,8 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
 
       {/* Help Modal */}
       {helpOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setHelpOpen(false)}>
-          <div className="glass-strong rounded-[var(--radius-lg)] shadow-2xl p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50" onClick={() => setHelpOpen(false)}>
+          <div className="bg-card border border-border rounded-[var(--radius-xl)] shadow-popover p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-9 h-9 rounded-full bg-[hsl(var(--primary)/0.15)] flex items-center justify-center">
                 <HelpCircle size={18} className="text-[hsl(var(--primary))]" />
@@ -252,7 +252,7 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden fade-in">
 
         {/* Top bar — identical across all pages */}
-        <header className="relative z-[100] flex items-center gap-3 px-4 md:px-6 h-14 flex-shrink-0 border-b border-white/5 bg-[hsl(var(--surface-1))]/70 backdrop-blur-md">
+        <header className="relative z-[100] flex items-center gap-2 md:gap-3 px-4 md:px-6 h-14 flex-shrink-0 border-b border-border bg-card">
           {/* Mobile hamburger */}
           <button
             className="md:hidden p-1.5 rounded text-[hsl(var(--muted-foreground))]"
@@ -265,11 +265,11 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
           {/* Search / ⌘K */}
           <button
             onClick={() => setCmdOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-md)] bg-[hsl(var(--surface-2))] border border-[hsl(var(--border))] text-[hsl(var(--subtle-foreground))] text-sm hover:border-[hsl(var(--border-strong))] transition-colors w-48 md:w-64"
+            className="flex items-center gap-2 px-3 h-9 rounded-[var(--radius-md)] bg-[hsl(var(--surface-2))] border border-[hsl(var(--border))] text-[hsl(var(--subtle-foreground))] text-sm hover:border-[hsl(var(--border-strong))] transition-colors w-9 md:w-64 justify-center md:justify-start flex-shrink-0"
             aria-label={t.navSearch}
           >
             <Search size={14} />
-            <span className="flex-1 text-left text-xs">{t.navSearch}</span>
+            <span className="hidden md:inline flex-1 text-left text-xs">{t.navSearch}</span>
             <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] bg-[hsl(var(--surface-3))] text-[hsl(var(--subtle-foreground))] font-mono">
               ⌘K
             </kbd>
@@ -287,7 +287,7 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
           {/* Emergency button */}
           <button
             onClick={() => setEmergencyOpen(true)}
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] bg-[hsl(var(--danger-soft))] text-[hsl(var(--danger))] text-sm font-medium hover:bg-[hsl(var(--danger)/0.2)] transition-colors"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] bg-[hsl(var(--danger-soft))] border border-red-200 text-[hsl(var(--danger))] text-sm font-medium hover:bg-red-100 transition-colors"
             aria-label={t.navEmergency}
           >
             <AlertTriangle size={14} />
@@ -316,7 +316,7 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
               )}
             </button>
             {notifOpen && (
-              <div className="absolute right-0 top-full mt-1 w-72 rounded-[var(--radius-md)] border border-[hsl(var(--border))] bg-[hsl(var(--surface-1))] shadow-2xl z-[9999] overflow-hidden">
+              <div className="absolute right-0 top-full mt-1 w-72 max-w-[calc(100vw-2rem)] rounded-[var(--radius-md)] border border-[hsl(var(--border))] bg-[hsl(var(--surface-1))] shadow-popover z-[9999] overflow-hidden">
                 <div className="px-4 py-3 border-b border-[hsl(var(--border))] flex items-center justify-between">
                   <span className="text-sm font-semibold text-[hsl(var(--foreground))]">{t.navNotifications}</span>
                   <span className="text-xs text-[hsl(var(--muted-foreground))]">{notifCount} new</span>
@@ -347,7 +347,7 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
               <span className="hidden md:inline text-xs font-medium uppercase">{lang}</span>
             </button>
             {langOpen && (
-              <div className="absolute right-0 top-full mt-1 w-36 rounded-[var(--radius-md)] border border-[hsl(var(--border))] bg-[hsl(var(--surface-1))] shadow-2xl z-[9999] overflow-hidden">
+              <div className="absolute right-0 top-full mt-1 w-36 rounded-[var(--radius-md)] border border-[hsl(var(--border))] bg-[hsl(var(--surface-1))] shadow-popover z-[9999] overflow-hidden">
                 {(Object.keys(LANGUAGE_LABELS) as Language[]).map(l => (
                   <button
                     key={l}
@@ -368,7 +368,7 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
           <div className="relative" data-user-menu>
             <button
               onClick={() => setUserMenuOpen(v => !v)}
-              className="w-8 h-8 rounded-full bg-[hsl(var(--primary))] flex items-center justify-center flex-shrink-0 hover:opacity-80 transition-opacity"
+              className="w-8 h-8 rounded-full bg-[hsl(var(--primary))] flex items-center justify-center flex-shrink-0 hover:bg-[hsl(var(--primary-hover))] transition-colors"
               title={user?.username ?? 'User'}
             >
               <span className="text-[hsl(var(--primary-foreground))] text-xs font-semibold">
@@ -376,7 +376,7 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
               </span>
             </button>
             {userMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-44 rounded-[var(--radius-md)] border border-[hsl(var(--border))] bg-[hsl(var(--surface-1))] shadow-2xl z-[9999] overflow-hidden">
+              <div className="absolute right-0 top-full mt-1 w-44 rounded-[var(--radius-md)] border border-[hsl(var(--border))] bg-[hsl(var(--surface-1))] shadow-popover z-[9999] overflow-hidden">
                 <div className="px-3 py-2 border-b border-[hsl(var(--border)/0.5)]">
                   <p className="text-xs font-medium text-[hsl(var(--foreground))]">{user?.username}</p>
                   <p className="text-[10px] text-[hsl(var(--muted-foreground))] capitalize">{user?.role?.toLowerCase()}</p>
@@ -394,10 +394,10 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
           {/* Page header — consistent across all screens */}
           {title && (
-            <div className="px-6 pt-6 pb-2">
+            <div className="px-4 md:px-6 pt-6 pb-2 max-w-screen-2xl mx-auto w-full">
               <h1 className="text-h1 text-[hsl(var(--foreground))]">{title}</h1>
               {subtitle && (
                 <p className="text-body text-[hsl(var(--muted-foreground))] mt-1">{subtitle}</p>
@@ -413,8 +413,8 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
 
       {/* Emergency Modal */}
       {emergencyOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setEmergencyOpen(false)}>
-          <div className="w-full max-w-sm rounded-xl bg-[hsl(var(--surface-1))] border border-[hsl(var(--danger)/0.4)] p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50" onClick={() => setEmergencyOpen(false)}>
+          <div className="w-full max-w-sm rounded-[var(--radius-xl)] bg-[hsl(var(--surface-1))] border border-[hsl(var(--danger)/0.4)] p-6 shadow-popover" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-[hsl(var(--danger-soft))] flex items-center justify-center flex-shrink-0">
                 <AlertTriangle size={20} className="text-[hsl(var(--danger))]" />
@@ -425,8 +425,8 @@ export default function AppShell({ children, title, subtitle, onNewAppointment }
               </div>
             </div>
             <p className="text-sm text-[hsl(var(--muted-foreground))] mb-5">Call emergency services immediately?</p>
-            <div className="rounded-xl bg-[hsl(var(--danger))] p-4 mb-4 text-center shadow-lg">
-              <p className="text-5xl font-black text-white tracking-widest drop-shadow">📞 112</p>
+            <div className="rounded-[var(--radius-lg)] bg-[hsl(var(--danger))] p-4 mb-4 text-center">
+              <p className="text-5xl font-bold text-white tracking-widest">112</p>
               <p className="text-xs text-white/80 mt-1 font-medium">European Emergency Number</p>
             </div>
             <div className="flex gap-3">

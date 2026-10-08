@@ -17,12 +17,13 @@ import {
 } from 'lucide-react'
 import AppShell from '@/components/AppShell'
 import { StatusBadge } from '@/components/StatusBadge'
+import { useToast } from '@/components/Toast'
 import { StatusTimeline } from '@/components/StatusTimeline'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/lib/auth-context'
 import { useI18n } from '@/lib/i18n-context'
 import { getAppointments, transitionStatus, deleteAppointment, createAppointment, getUsers, getDoctors, getDepartments } from '@/lib/api'
-import { formatDateTime, cn } from '@/lib/utils'
+import { formatDateTime, cn, errorMessage } from '@/lib/utils'
 import { appointmentSchema, type AppointmentFormValues } from '@/lib/schemas'
 import type { Appointment, AppointmentStatus } from '@/lib/types'
 
@@ -31,6 +32,7 @@ export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth()
   const { t } = useI18n()
   const qc = useQueryClient()
+  const toast = useToast()
 
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [showForm, setShowForm]     = useState(false)
@@ -52,7 +54,7 @@ export default function AdminDashboard() {
     COMPLETED: t.statusCompleted, CANCELLED: t.statusCancelled, NO_SHOW: t.statusNoShow,
   }
 
-  const { data: appointments = [], isLoading } = useQuery({
+  const { data: appointments = [], isLoading, error: apptError, refetch: refetchAppts } = useQuery({
     queryKey: ['appointments'],
     queryFn: getAppointments,
     enabled: user?.role === 'ROLE_ADMIN',
@@ -90,6 +92,7 @@ export default function AdminDashboard() {
     formState: { errors, isSubmitting },
   } = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentSchema),
+    mode: 'onTouched',
     defaultValues: { patientName: '', patientUsername: '', doctorName: '', department: '', appointmentTime: '' },
   })
 
@@ -104,8 +107,9 @@ export default function AdminDashboard() {
         (old ?? []).map(a => a.id === id ? { ...a, status } : a))
       return { prev }
     },
-    onError: (_err, _vars, ctx) => {
+    onError: (err, _vars, ctx) => {
       qc.setQueryData(['appointments'], ctx?.prev)
+      toast.error(errorMessage(err, 'Status could not be updated. Please try again.'))
     },
     onSuccess: (updated, { id }) => {
       qc.setQueryData<Appointment[]>(['appointments'], old =>
@@ -122,7 +126,9 @@ export default function AdminDashboard() {
     onSuccess: (_, id) => {
       qc.setQueryData<Appointment[]>(['appointments'], old => (old ?? []).filter(a => a.id !== id))
       if (selectedId === id) setSelectedId(null)
+      toast.success('Appointment deleted')
     },
+    onError: (err) => toast.error(errorMessage(err, 'Appointment could not be deleted.')),
   })
 
   const createMut = useMutation({
@@ -203,7 +209,7 @@ export default function AdminDashboard() {
     {
       accessorKey: 'patientName',
       header: ({ column }) => <SortHeader label={t.patient} column={column} />,
-      cell: ({ getValue }) => <span className="font-medium">{getValue<string>()}</span>,
+      cell: ({ getValue }) => <span className="font-medium text-foreground">{getValue<string>()}</span>,
     },
     {
       accessorKey: 'doctorName',
@@ -214,7 +220,7 @@ export default function AdminDashboard() {
       accessorKey: 'department',
       header: t.labelDepartment,
       cell: ({ getValue }) => (
-        <span className="text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5 font-medium border border-primary/20">
+        <span className="inline-block text-xs bg-blue-50 text-blue-700 rounded-full px-2.5 py-0.5 font-medium border border-blue-200 whitespace-nowrap">
           {getValue<string>()}
         </span>
       ),
@@ -223,7 +229,7 @@ export default function AdminDashboard() {
       accessorKey: 'appointmentTime',
       header: ({ column }) => <SortHeader label={t.appointment} column={column} />,
       cell: ({ getValue }) => (
-        <span className="text-muted-foreground whitespace-nowrap">{formatDateTime(getValue<string>())}</span>
+        <span className="text-muted-foreground whitespace-nowrap tabular-nums">{formatDateTime(getValue<string>())}</span>
       ),
     },
     {
@@ -239,12 +245,12 @@ export default function AdminDashboard() {
       cell: ({ row }) => {
         const isPending = row.original.status === 'PENDING'
         return (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center justify-end gap-1">
             {isPending && (
               <>
                 <button
                   onClick={e => handleQuickApprove(e, row.original.id)}
-                  className="rounded p-1 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
+                  className="rounded-md p-1.5 text-green-600 hover:bg-green-50 transition-colors"
                   aria-label={t.tooltipConfirm}
                   title={t.tooltipConfirm}
                 >
@@ -252,7 +258,7 @@ export default function AdminDashboard() {
                 </button>
                 <button
                   onClick={e => handleQuickReject(e, row.original.id)}
-                  className="rounded p-1 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  className="rounded-md p-1.5 text-red-600 hover:bg-red-50 transition-colors"
                   aria-label={t.tooltipReject}
                   title={t.tooltipReject}
                 >
@@ -262,7 +268,7 @@ export default function AdminDashboard() {
             )}
             <button
               onClick={e => { e.stopPropagation(); deleteMut.mutate(row.original.id) }}
-              className="rounded p-1 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              className="rounded-md p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
               aria-label={t.tooltipDelete}
             >
               <Trash2 className="h-4 w-4" />
@@ -307,39 +313,39 @@ export default function AdminDashboard() {
 
   return (
     <AppShell subtitle={t.appSubtitle} onNewAppointment={() => setShowForm(true)}>
-      <div className="px-6 pt-6 pb-10 max-w-screen-2xl mx-auto">
+      <div className="px-4 md:px-6 pt-6 pb-10 max-w-screen-2xl mx-auto w-full min-w-0">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-5 mb-8">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-5 mb-6">
         {isLoading
-          ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
+          ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-[84px] rounded-[var(--radius-xl)]" />)
           : (<>
             <KpiCard
-              icon={<Calendar className="h-5 w-5 text-blue-400" />}
-              label={t.today} value={todayCount} glow="glow-blue"
+              icon={<Calendar className="h-5 w-5 text-blue-600" />}
+              label={t.today} value={todayCount}
               onClick={() => setStatusFilter('')}
               active={statusFilter === '' && !globalFilter}
             />
             <KpiCard
-              icon={<Clock className="h-5 w-5 text-amber-400" />}
-              label={t.pending} value={pendingCount} glow="glow-amber"
+              icon={<Clock className="h-5 w-5 text-amber-600" />}
+              label={t.pending} value={pendingCount}
               onClick={() => setStatusFilter('PENDING')}
               active={statusFilter === 'PENDING'}
             />
             <KpiCard
-              icon={<CheckCircle className="h-5 w-5 text-emerald-400" />}
-              label={t.completed} value={completedCount} glow="glow-green"
+              icon={<CheckCircle className="h-5 w-5 text-green-600" />}
+              label={t.completed} value={completedCount}
               onClick={() => setStatusFilter('COMPLETED')}
               active={statusFilter === 'COMPLETED'}
             />
             <KpiCard
-              icon={<AlertCircle className="h-5 w-5 text-gray-400" />}
+              icon={<AlertCircle className="h-5 w-5 text-slate-500" />}
               label={t.noShow} value={noShowCount}
               onClick={() => setStatusFilter('NO_SHOW')}
               active={statusFilter === 'NO_SHOW'}
             />
             <KpiCard
-              icon={<XCircle className="h-5 w-5 text-red-400" />}
-              label={t.cancelled} value={cancelledCount} glow="glow-red"
+              icon={<XCircle className="h-5 w-5 text-red-600" />}
+              label={t.cancelled} value={cancelledCount}
               onClick={() => setStatusFilter('CANCELLED')}
               active={statusFilter === 'CANCELLED'}
             />
@@ -349,21 +355,22 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">
         {/* Left: Table / Calendar */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2 min-w-0 space-y-4">
           {/* Toolbar */}
-          <div className="flex flex-wrap gap-3 items-center justify-between">
-            <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex flex-wrap gap-3 items-center justify-between min-w-0">
+            <div className="flex flex-wrap gap-2 items-center min-w-0 w-full sm:w-auto">
               <input
                 type="text"
                 placeholder={t.searchDoctor}
                 value={globalFilter}
                 onChange={e => setGlobalFilter(e.target.value)}
-                className="rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-48"
+                aria-label={t.searchDoctor} className="field-input !w-full sm:!w-56"
               />
               <select
                 value={statusFilter}
                 onChange={e => setStatusFilter(e.target.value as AppointmentStatus | '')}
-                className="rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                aria-label={t.status}
+                className="field-input !w-auto"
               >
                 <option value="">{t.allStatuses}</option>
                 {(Object.keys(STATUS_LABELS) as AppointmentStatus[]).map(s => (
@@ -374,10 +381,10 @@ export default function AdminDashboard() {
               <button
                 onClick={() => { setStatusFilter(''); setGlobalFilter('') }}
                 className={cn(
-                  'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+                  'px-3 h-9 rounded-full text-xs font-medium border transition-colors',
                   statusFilter === '' && !globalFilter
                     ? 'bg-primary text-primary-foreground border-primary'
-                    : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground'
+                    : 'bg-card border-border-strong text-muted-foreground hover:bg-surface-2'
                 )}
               >
                 {t.filterAll}
@@ -385,10 +392,10 @@ export default function AdminDashboard() {
               <button
                 onClick={() => { setStatusFilter('PENDING'); setGlobalFilter('') }}
                 className={cn(
-                  'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+                  'px-3 h-9 rounded-full text-xs font-medium border transition-colors',
                   statusFilter === 'PENDING'
-                    ? 'bg-amber-500 text-white border-amber-500'
-                    : 'border-border text-muted-foreground hover:text-foreground'
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-card border-border-strong text-muted-foreground hover:bg-surface-2'
                 )}
               >
                 {t.statusPending}
@@ -402,24 +409,24 @@ export default function AdminDashboard() {
                   setStatusFilter('__today__')
                 }}
                 className={cn(
-                  'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+                  'px-3 h-9 rounded-full text-xs font-medium border transition-colors',
                   statusFilter === '__today__'
-                    ? 'bg-blue-500 text-white border-blue-500'
-                    : 'border-border text-muted-foreground hover:text-foreground'
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-card border-border-strong text-muted-foreground hover:bg-surface-2'
                 )}
               >
                 {t.today}
               </button>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {/* View toggle */}
-              <div className="flex border border-border rounded-md overflow-hidden">
+              <div className="flex border border-border-strong rounded-md overflow-hidden bg-card">
                 <button
                   onClick={() => setViewMode('list')}
                   className={cn(
-                    'p-1.5 transition-colors',
-                    viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
+                    'h-9 w-9 flex items-center justify-center transition-colors',
+                    viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-surface-2'
                   )}
                   title={t.tooltipListView}
                 >
@@ -428,8 +435,8 @@ export default function AdminDashboard() {
                 <button
                   onClick={() => setViewMode('calendar')}
                   className={cn(
-                    'p-1.5 transition-colors',
-                    viewMode === 'calendar' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
+                    'h-9 w-9 flex items-center justify-center transition-colors',
+                    viewMode === 'calendar' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-surface-2'
                   )}
                   title={t.tooltipCalendarView}
                 >
@@ -440,7 +447,7 @@ export default function AdminDashboard() {
               {/* Export XLSX */}
               <button
                 onClick={handleExportCSV}
-                className="flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="btn btn-secondary"
                 title={`${t.tooltipExportExcel} (${filteredData.length})`}
               >
                 <Download className="h-4 w-4" />
@@ -450,7 +457,7 @@ export default function AdminDashboard() {
               {/* New Appointment */}
               <button
                 onClick={() => setShowForm(true)}
-                className="flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="btn btn-primary"
               >
                 <Plus className="h-4 w-4" /> {t.newAppointment}
               </button>
@@ -459,43 +466,47 @@ export default function AdminDashboard() {
 
           {viewMode === 'list' ? (
             /* ── Table ── */
-            <div className="rounded-xl overflow-hidden glass-strong">
+            <div className="rounded-[var(--radius-xl)] overflow-hidden bg-card border border-border shadow-card">
               {isLoading ? (
                 <div className="p-4 space-y-3">
-                  {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}
+                  {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10" />)}
+                </div>
+              ) : apptError ? (
+                <div role="alert" className="px-4 py-10 text-center">
+                  <AlertCircle className="mx-auto h-8 w-8 text-red-600 mb-2" aria-hidden />
+                  <p className="text-sm font-medium text-foreground">{errorMessage(apptError, 'Appointments could not be loaded.')}</p>
+                  <button onClick={() => refetchAppts()} className="btn btn-secondary mt-4">{t.tryAgain}</button>
                 </div>
               ) : (
                 <>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="border-b border-white/5 bg-white/5">
+                    <table className="data-table">
+                      <thead>
                         {table.getHeaderGroups().map(hg => (
                           <tr key={hg.id}>
                             {hg.headers.map(header => (
-                              <th key={header.id}
-                                className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">
+                              <th key={header.id} className={header.column.id === 'actions' ? 'actions' : undefined}>
                                 {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                               </th>
                             ))}
                           </tr>
                         ))}
                       </thead>
-                      <tbody className="divide-y">
+                      <tbody>
                         {table.getRowModel().rows.length === 0 ? (
                           <tr>
-                            <td colSpan={columns.length} className="px-4 py-12 text-center text-sm text-muted-foreground">
-                              {t.noAppointments}
+                            <td colSpan={columns.length} className="!py-10 text-center">
+                              <Calendar className="mx-auto h-8 w-8 text-slate-300 mb-2" aria-hidden />
+                              <p className="text-sm text-muted-foreground">{t.noAppointments}</p>
                             </td>
                           </tr>
                         ) : table.getRowModel().rows.map(row => (
                           <tr key={row.id}
                             data-row-id={row.original.id}
                             onClick={() => setSelectedId(row.original.id === selectedId ? null : row.original.id)}
-                            className={cn('cursor-pointer table-row-hover transition-colors',
-                              selectedId === row.original.id && 'bg-primary/5 ring-1 ring-inset ring-primary/20'
-                            )}>
+                            className={cn('cursor-pointer', selectedId === row.original.id && '[&>td]:!bg-blue-50')}>
                             {row.getVisibleCells().map(cell => (
-                              <td key={cell.id} className="px-4 py-3">
+                              <td key={cell.id} className={cell.column.id === 'actions' ? 'actions' : undefined}>
                                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
                               </td>
                             ))}
@@ -506,18 +517,20 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Pagination */}
-                  <div className="border-t px-4 py-3 flex items-center justify-between text-sm text-muted-foreground">
-                    <span>
+                  <div className="border-t border-border px-4 py-3 flex items-center justify-between gap-3 text-sm text-muted-foreground">
+                    <span className="min-w-0 truncate">
                       {t.page ?? 'Page'} {table.getState().pagination.pageIndex + 1} / {Math.max(1, table.getPageCount())}
                       {' '}· {table.getFilteredRowModel().rows.length} {t.total ?? 'total'}
                     </span>
                     <div className="flex items-center gap-1">
                       <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}
-                        className="rounded p-1 hover:bg-muted disabled:opacity-40 transition-colors">
+                        aria-label={t.previous}
+                        className="rounded-md p-1.5 hover:bg-surface-2 disabled:opacity-40 transition-colors">
                         <ChevronLeft className="h-4 w-4" />
                       </button>
                       <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}
-                        className="rounded p-1 hover:bg-muted disabled:opacity-40 transition-colors">
+                        aria-label={t.next}
+                        className="rounded-md p-1.5 hover:bg-surface-2 disabled:opacity-40 transition-colors">
                         <ChevronRight className="h-4 w-4" />
                       </button>
                     </div>
@@ -532,11 +545,11 @@ export default function AdminDashboard() {
         </div>
 
         {/* Right: Detail panel */}
-        <div>
+        <div className="min-w-0">
           {selected ? (
-            <div className="rounded-xl glass-strong p-5 space-y-5 sticky top-20 slide-in-right">
+            <div className="rounded-[var(--radius-xl)] bg-card border border-border shadow-card p-5 space-y-4 lg:sticky lg:top-4 slide-in-right">
               <div>
-                <h2 className="font-semibold text-base">{selected.patientName}</h2>
+                <h2 className="font-semibold text-base break-words">{selected.patientName}</h2>
                 <p className="text-sm text-muted-foreground">{selected.doctorName} · {selected.department}</p>
                 <p className="text-sm text-muted-foreground">{formatDateTime(selected.appointmentTime)}</p>
               </div>
@@ -549,10 +562,10 @@ export default function AdminDashboard() {
                   setTimeout(() => setReminderSent(false), 3000)
                 }}
                 className={cn(
-                  'w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors border',
+                  'w-full flex items-center justify-center gap-2 h-9 rounded-md text-sm font-medium transition-colors border',
                   reminderSent
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                    : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'
+                    ? 'bg-green-50 border-green-200 text-green-700'
+                    : 'bg-card border-border-strong text-foreground hover:bg-surface-2'
                 )}
               >
                 <Bell className="h-4 w-4" />
@@ -575,8 +588,8 @@ export default function AdminDashboard() {
               </div>
             </div>
           ) : (
-            <div className="rounded-xl border border-dashed glass p-10 text-center opacity-70">
-              <Calendar className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
+            <div className="rounded-[var(--radius-xl)] border border-dashed border-border-strong bg-card p-6 text-center">
+              <Calendar className="mx-auto h-6 w-6 text-slate-300 mb-2" />
               <p className="text-sm text-muted-foreground">{t.selectAppointment}</p>
             </div>
           )}
@@ -587,11 +600,11 @@ export default function AdminDashboard() {
 
       {/* ── New Appointment Modal ── */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
           onClick={handleCloseForm}>
-          <div className="w-full max-w-md rounded-xl glass-strong p-6 shadow-2xl"
+          <div role="dialog" aria-modal="true" className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-[var(--radius-xl)] bg-card border border-border p-6 shadow-popover"
             onClick={e => e.stopPropagation()}>
-            <h2 className="mb-5 font-semibold text-lg">{t.createAppointmentTitle}</h2>
+            <h2 className="mb-5 font-semibold text-lg text-foreground">{t.createAppointmentTitle}</h2>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
               <FormField label={t.labelPatient} error={errors.patientName?.message}>
@@ -603,10 +616,7 @@ export default function AdminDashboard() {
                       field.onChange(e.target.value)
                       setValue('patientUsername', selected?.username ?? '')
                     }}
-                    className={cn(
-                      'w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring',
-                      errors.patientName && 'border-red-400 focus:ring-red-400'
-                    )}
+                    aria-invalid={!!errors.patientName} className="field-input"
                   >
                     <option value="">— Select patient —</option>
                     {patients.map(p => (
@@ -621,10 +631,7 @@ export default function AdminDashboard() {
               <FormField label={t.labelDoctor} error={errors.doctorName?.message}>
                 <Controller name="doctorName" control={control} render={({ field }) => (
                   <select {...field}
-                    className={cn(
-                      'w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring',
-                      errors.doctorName && 'border-red-400 focus:ring-red-400'
-                    )}>
+                    aria-invalid={!!errors.doctorName} className="field-input">
                     <option value="">{t.selectDoctor}</option>
                     {activeDoctorNames.map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
@@ -634,10 +641,7 @@ export default function AdminDashboard() {
               <FormField label={t.labelDepartment} error={errors.department?.message}>
                 <Controller name="department" control={control} render={({ field }) => (
                   <select {...field}
-                    className={cn(
-                      'w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring',
-                      errors.department && 'border-red-400 focus:ring-red-400'
-                    )}>
+                    aria-invalid={!!errors.department} className="field-input">
                     <option value="">{t.selectDepartment}</option>
                     {departmentNames.map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
@@ -648,24 +652,21 @@ export default function AdminDashboard() {
                 <input
                   type="datetime-local"
                   {...register('appointmentTime')}
-                  className={cn(
-                    'w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring',
-                    errors.appointmentTime && 'border-red-400 focus:ring-red-400'
-                  )}
+                  aria-invalid={!!errors.appointmentTime} className="field-input"
                 />
               </FormField>
 
               {conflictSlots.length > 0 && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-3">
-                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
-                    ⚠️ {t.slotTaken}
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-sm font-medium text-amber-800 mb-2">
+                    {t.slotTaken}
                   </p>
-                  <p className="text-xs text-amber-700 dark:text-amber-300 mb-2">{t.alternatives}:</p>
+                  <p className="text-xs text-amber-700 mb-2">{t.alternatives}:</p>
                   <div className="flex flex-wrap gap-2">
                     {conflictSlots.map(slot => (
                       <button key={slot} type="button"
                         onClick={() => { setValue('appointmentTime', slot.slice(0, 16)); setConflictSlots([]) }}
-                        className="rounded-md bg-amber-100 dark:bg-amber-900/50 border border-amber-300 dark:border-amber-700 px-2.5 py-1 text-xs font-medium text-amber-800 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-800 transition-colors">
+                        className="rounded-md bg-white border border-amber-300 px-2.5 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100 transition-colors">
                         {formatDateTime(slot)}
                       </button>
                     ))}
@@ -674,18 +675,18 @@ export default function AdminDashboard() {
               )}
 
               {createMut.isError && conflictSlots.length === 0 && (
-                <p className="text-xs text-red-500">
-                  {(createMut.error as (Error & { detail?: string }) | null)?.detail ?? t.errorCreating}
+                <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {errorMessage(createMut.error, t.errorCreating)}
                 </p>
               )}
 
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={handleCloseForm}
-                  className="flex-1 rounded-md border px-4 py-2 text-sm hover:bg-accent transition-colors">
+                  className="btn btn-secondary flex-1">
                   {t.cancel}
                 </button>
                 <button type="submit" disabled={isSubmitting || createMut.isPending}
-                  className="flex-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors">
+                  className="btn btn-primary flex-1">
                   {(isSubmitting || createMut.isPending) ? t.saving : t.save}
                 </button>
               </div>
@@ -723,28 +724,28 @@ function CalendarView({ appointments, onSelect, selectedId }: {
     })
 
   const STATUS_COLORS: Record<string, string> = {
-    PENDING: 'bg-amber-500/20 border-amber-500/50 text-amber-300',
-    CONFIRMED: 'bg-blue-500/20 border-blue-500/50 text-blue-300',
-    COMPLETED: 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300',
-    CANCELLED: 'bg-red-500/20 border-red-500/50 text-red-400',
-    NO_SHOW: 'bg-gray-500/20 border-gray-500/50 text-gray-400',
+    PENDING: 'bg-amber-50 border-amber-200 text-amber-700',
+    CONFIRMED: 'bg-blue-50 border-blue-200 text-blue-700',
+    COMPLETED: 'bg-green-50 border-green-200 text-green-700',
+    CANCELLED: 'bg-red-50 border-red-200 text-red-700',
+    NO_SHOW: 'bg-slate-100 border-slate-200 text-slate-600',
   }
 
   const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
   return (
-    <div className="rounded-xl overflow-hidden glass-strong">
+    <div className="rounded-[var(--radius-xl)] overflow-hidden bg-card border border-border shadow-card">
       {/* Week navigation */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <button onClick={() => setWeekOffset(w => w - 1)}
-          className="p-1.5 rounded hover:bg-muted transition-colors">
+          className="p-1.5 rounded-md hover:bg-surface-2 transition-colors">
           <ChevronLeft className="h-4 w-4" />
         </button>
         <span className="text-sm font-medium">
           {days[0].toLocaleDateString('tr-TR', { day:'numeric', month:'long' })} – {days[6].toLocaleDateString('tr-TR', { day:'numeric', month:'long', year:'numeric' })}
         </span>
         <button onClick={() => setWeekOffset(w => w + 1)}
-          className="p-1.5 rounded hover:bg-muted transition-colors">
+          className="p-1.5 rounded-md hover:bg-surface-2 transition-colors">
           <ChevronRight className="h-4 w-4" />
         </button>
       </div>
@@ -752,12 +753,12 @@ function CalendarView({ appointments, onSelect, selectedId }: {
       <div className="overflow-x-auto">
         <div className="min-w-[700px]">
           {/* Day headers */}
-          <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-white/5">
+          <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border">
             <div className="px-2 py-2 text-xs text-muted-foreground" />
             {days.map((day, i) => (
               <div key={i} className={cn(
-                'px-2 py-2 text-center border-l border-white/5',
-                day.toDateString() === today.toDateString() && 'bg-primary/5'
+                'px-2 py-2 text-center border-l border-border',
+                day.toDateString() === today.toDateString() && 'bg-blue-50/60'
               )}>
                 <p className="text-xs text-muted-foreground">{DAY_NAMES[i]}</p>
                 <p className={cn(
@@ -770,14 +771,14 @@ function CalendarView({ appointments, onSelect, selectedId }: {
 
           {/* Time slots */}
           {hours.map(hour => (
-            <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-white/5 min-h-[48px]">
+            <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border min-h-[48px]">
               <div className="px-2 py-1 text-xs text-muted-foreground text-right pr-3">{hour}:00</div>
               {days.map((day, di) => {
                 const apts = getAptsForSlot(day, hour)
                 return (
                   <div key={di} className={cn(
-                    'border-l border-white/5 p-0.5',
-                    day.toDateString() === today.toDateString() && 'bg-primary/5'
+                    'border-l border-border p-0.5',
+                    day.toDateString() === today.toDateString() && 'bg-blue-50/60'
                   )}>
                     {apts.map(apt => (
                       <button
@@ -806,33 +807,35 @@ function CalendarView({ appointments, onSelect, selectedId }: {
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
-function KpiCard({ icon, label, value, glow = '', onClick, active }: {
-  icon: React.ReactNode; label: string; value: number; glow?: string
+function KpiCard({ icon, label, value, onClick, active }: {
+  icon: React.ReactNode; label: string; value: number
   onClick?: () => void; active?: boolean
 }) {
   return (
     <button
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
-        `kpi-card glass-strong ${glow} w-full text-left transition-all`,
-        active && 'ring-2 ring-primary/50'
+        'kpi-card bg-card border border-border shadow-card w-full min-w-0 text-left',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+        active && '!border-primary ring-1 ring-primary/30'
       )}
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="rounded-xl bg-white/5 p-2.5 shrink-0">{icon}</div>
-        <span className="text-3xl font-bold tracking-tight">{value}</span>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-2xl font-semibold tracking-tight tabular-nums text-foreground">{value}</span>
+        <div className="rounded-md bg-surface-2 p-2 shrink-0">{icon}</div>
       </div>
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+      <p className="mt-2 text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">{label}</p>
     </button>
   )
 }
 
 function FormField({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-1">
-      <label className="text-sm font-medium">{label}</label>
+    <div>
+      <label className="field-label">{label}</label>
       {children}
-      {error && <p className="text-xs text-red-500" role="alert">{error}</p>}
+      {error && <p className="field-error" role="alert">{error}</p>}
     </div>
   )
 }
@@ -842,7 +845,7 @@ function SortHeader({ label, column }: { label: string; column: Column<Appointme
   return (
     <button
       onClick={() => column.toggleSorting(sorted === 'asc')}
-      className="flex items-center gap-1 hover:text-foreground transition-colors"
+      className="flex items-center gap-1 uppercase tracking-[.04em] font-semibold hover:text-foreground transition-colors"
     >
       {label}
       {sorted === 'asc'  ? <ArrowUp className="h-3 w-3" /> :
